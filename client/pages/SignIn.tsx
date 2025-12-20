@@ -25,7 +25,7 @@ export default function SignIn() {
 
     try {
       const result = await signIn(email, password);
-      
+
       if (result.error) {
         setError(result.error);
       } else if (result.success) {
@@ -48,7 +48,7 @@ export default function SignIn() {
           </div>
           <CardTitle className="text-2xl">Welcome Back</CardTitle>
           <CardDescription>
-            Sign in to your SkillTrade account
+            Sign in to your MeritOne account
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -58,7 +58,7 @@ export default function SignIn() {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">

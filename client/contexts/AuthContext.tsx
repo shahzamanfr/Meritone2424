@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { messagingService } from '@/lib/unified-messaging.service';
 
 type AuthContextType = {
   user: User | null;
@@ -59,6 +60,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: 'Please verify your email before signing in' };
       }
 
+      // Mark user online immediately after successful sign-in
+      if (data.user?.id) {
+        await messagingService.updateUserStatus(data.user.id, true);
+      }
+
       return { success: true };
     } catch (error) {
       return { error: 'Login failed' };
@@ -67,6 +73,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     try {
+      // Mark user offline before signing out
+      if (user?.id) {
+        await messagingService.updateUserStatus(user.id, false);
+        messagingService.cleanup();
+      }
       await supabase.auth.signOut();
     } catch (error) {
       console.error('Sign out error:', error);
@@ -92,6 +103,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Presence lifecycle: mark online when we have a user; mark offline on unload
+  useEffect(() => {
+    if (!user?.id) return;
+
+    // Ensure status is set to online when a session/user is present
+    messagingService.updateUserStatus(user.id, true);
+
+    const handleBeforeUnload = () => {
+      // Fire-and-forget best effort to mark offline
+      messagingService.updateUserStatus(user.id!, false);
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [user?.id]);
 
   const value = {
     user,

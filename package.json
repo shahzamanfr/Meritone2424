@@ -18,13 +18,19 @@
     "start": "node dist/server/node-build.mjs",
     "test": "vitest --run",
     "format.fix": "prettier --write .",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "clean:build": "rimraf dist",
+    "clean:caches": "rimraf node_modules/.vite .vite .cache",
+    "clean:locks": "rimraf package-lock.json skilltrade/SkillTrade/package-lock.json",
+    "clean:all": "pnpm run clean:build && pnpm run clean:caches && pnpm run clean:locks"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.55.0",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
+    "framer-motion": "^11.0.0",
     "lucide-react": "^0.541.0",
+    "react-to-print": "^3.2.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
@@ -75,7 +81,6 @@
     "cors": "^2.8.5",
     "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
-    "framer-motion": "^12.23.12",
     "globals": "^16.3.0",
     "input-otp": "^1.4.2",
     "next-themes": "^0.4.6",
@@ -88,6 +93,7 @@
     "react-resizable-panels": "^3.0.4",
     "react-router-dom": "^6.30.1",
     "recharts": "^2.12.7",
+    "rimraf": "^6.0.1",
     "serverless-http": "^3.2.0",
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.6.0",
@@ -100,5 +106,10 @@
     "vite": "^7.1.2",
     "vitest": "^3.2.4"
   },
-  "packageManager": "pnpm@10.14.0+sha512.ad27a79641b49c3e481a16a805baa71817a04bbe06a38d17e60e2eaee83f6a146c6a688125f5792e48dd5ba30e7da52a5cda4c3992b9ccf333f9ce223af84748"
+  "packageManager": "pnpm@10.14.0+sha512.ad27a79641b49c3e481a16a805baa71817a04bbe06a38d17e60e2eaee83f6a146c6a688125f5792e48dd5ba30e7da52a5cda4c3992b9ccf333f9ce223af84748",
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
 }

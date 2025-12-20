@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePosts } from '@/contexts/PostsContext';
 import { useProfile } from '@/contexts/ProfileContext';
-import { X, Image, Video, File, Plus, Trash2, Upload } from 'lucide-react';
+import { X, Image, Video, File, Plus, Trash2, Upload, Briefcase, Search } from 'lucide-react';
 
 type PostType = 'skill_offer' | 'skill_request' | 'project' | 'general';
 type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
@@ -37,7 +37,7 @@ const CreatePost: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [postData, setPostData] = useState<PostData>({
     type: 'general',
     title: '',
@@ -85,7 +85,7 @@ const CreatePost: React.FC = () => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFileUpload(e.dataTransfer.files);
     }
@@ -94,9 +94,9 @@ const CreatePost: React.FC = () => {
   const handleFileUpload = (files: FileList) => {
     const newFiles = Array.from(files);
     const validFiles = newFiles.filter(file => {
-      const isValidType = file.type.startsWith('image/') || 
-                         file.type.startsWith('video/') || 
-                         file.type === 'application/pdf';
+      const isValidType = file.type.startsWith('image/') ||
+        file.type.startsWith('video/') ||
+        file.type === 'application/pdf';
       const isValidSize = file.size <= 10 * 1024 * 1024; // 10MB limit
       return isValidType && isValidSize;
     });
@@ -158,7 +158,7 @@ const CreatePost: React.FC = () => {
         media_urls: postData.media?.previews || [],
       };
 
-      console.log('Creating post with data:', postDataForDB);
+
 
       const { error, success } = await createPost(postDataForDB);
 
@@ -193,14 +193,14 @@ const CreatePost: React.FC = () => {
         return {
           title: 'I have work to offer',
           subtitle: 'Post a project or job opportunity',
-          icon: '💼',
+          icon: <Briefcase className="w-8 h-8" />,
           color: 'green'
         };
       case 'skill_request':
         return {
           title: 'I\'m looking for work',
           subtitle: 'Showcase your skills and availability',
-          icon: '🔍',
+          icon: <Search className="w-8 h-8" />,
           color: 'blue'
         };
       case 'project':
@@ -227,7 +227,7 @@ const CreatePost: React.FC = () => {
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <button 
+              <button
                 onClick={() => navigate('/feed')}
                 className="text-gray-600 hover:text-green-600 transition-colors p-2 hover:bg-gray-100 rounded-lg"
               >
@@ -235,7 +235,7 @@ const CreatePost: React.FC = () => {
               </button>
               <h1 className="text-xl font-bold text-gray-900">Create Post</h1>
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <div className="flex space-x-1">
                 {[1, 2].map((stepNumber) => (
@@ -263,100 +263,69 @@ const CreatePost: React.FC = () => {
               <p className="text-gray-600 text-lg">Choose the type of post you'd like to create</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {(['skill_offer', 'skill_request', 'project', 'general'] as PostType[]).map((type) => {
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+              {(['skill_offer', 'skill_request'] as PostType[]).map((type) => {
                 const info = getPostTypeInfo(type);
                 const isSelected = postData.type === type;
-                
+
                 return (
                   <button
                     key={type}
                     onClick={() => setPostData(prev => ({ ...prev, type }))}
                     className={cn(
-                      "group relative bg-white border-2 rounded-xl p-8 text-left transition-all duration-200 hover:shadow-lg hover:scale-105",
-                      isSelected 
-                        ? `border-${info.color}-500 bg-${info.color}-50` 
-                        : "border-gray-200 hover:border-gray-300"
+                      "group relative bg-white border rounded-2xl p-8 text-left transition-all duration-300",
+                      isSelected
+                        ? `border-${info.color}-600 ring-1 ring-${info.color}-600 shadow-xl scale-[1.02]`
+                        : "border-gray-100 hover:border-gray-200 hover:shadow-lg hover:-translate-y-1"
                     )}
                   >
-                    <div className="flex items-center space-x-4 mb-4">
-                      <div className={cn(
-                        "w-12 h-12 rounded-lg flex items-center justify-center text-2xl transition-colors",
-                        isSelected ? `bg-${info.color}-500 text-white` : `bg-${info.color}-100 group-hover:bg-${info.color}-200`
-                      )}>
-                        {info.icon}
+                    <div className="flex flex-col h-full">
+                      <div className="flex items-center justify-between mb-6">
+                        <div className={cn(
+                          "w-16 h-16 rounded-2xl flex items-center justify-center transition-colors shadow-sm",
+                          isSelected ? `bg-${info.color}-100 text-${info.color}-700` : `bg-gray-50 text-gray-500 group-hover:bg-${info.color}-50 group-hover:text-${info.color}-600`
+                        )}>
+                          {info.icon}
+                        </div>
+                        {isSelected && (
+                          <div className={`w-4 h-4 rounded-full bg-${info.color}-600 shadow-sm`} />
+                        )}
                       </div>
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-900">{info.title}</h3>
-                        <p className="text-gray-600">{info.subtitle}</p>
+
+                      <div className="mb-6">
+                        <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-gray-800 transition-colors">{info.title}</h3>
+                        <p className="text-gray-500 text-sm leading-relaxed">{info.subtitle}</p>
+                      </div>
+
+                      <div className="mt-auto pt-6 border-t border-gray-100">
+                        <ul className="space-y-3">
+                          {type === 'skill_offer' && (
+                            <>
+                              <li className="flex items-start space-x-3 text-sm text-gray-600">
+                                <span className="mt-1.5 w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></span>
+                                <span>Get work done efficiently</span>
+                              </li>
+                              <li className="flex items-start space-x-3 text-sm text-gray-600">
+                                <span className="mt-1.5 w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></span>
+                                <span>Find rated professionals</span>
+                              </li>
+                            </>
+                          )}
+                          {type === 'skill_request' && (
+                            <>
+                              <li className="flex items-start space-x-3 text-sm text-gray-600">
+                                <span className="mt-1.5 w-1.5 h-1.5 bg-blue-500 rounded-full flex-shrink-0"></span>
+                                <span>Find projects & opportunities</span>
+                              </li>
+                              <li className="flex items-start space-x-3 text-sm text-gray-600">
+                                <span className="mt-1.5 w-1.5 h-1.5 bg-blue-500 rounded-full flex-shrink-0"></span>
+                                <span>Build your professional profile</span>
+                              </li>
+                            </>
+                          )}
+                        </ul>
                       </div>
                     </div>
-                    <ul className="space-y-2 text-sm text-gray-600">
-                      {type === 'skill_offer' && (
-                        <>
-                          <li className="flex items-center space-x-2">
-                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-                            <span>Describe the work you need done</span>
-                          </li>
-                          <li className="flex items-center space-x-2">
-                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-                            <span>Specify required skills and experience</span>
-                          </li>
-                          <li className="flex items-center space-x-2">
-                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-                            <span>Set deadlines and expectations</span>
-                          </li>
-                        </>
-                      )}
-                      {type === 'skill_request' && (
-                        <>
-                          <li className="flex items-center space-x-2">
-                            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                            <span>Highlight your skills and experience</span>
-                          </li>
-                          <li className="flex items-center space-x-2">
-                            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                            <span>Show your availability and preferences</span>
-                          </li>
-                          <li className="flex items-center space-x-2">
-                            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                            <span>Specify what you can offer in exchange</span>
-                          </li>
-                        </>
-                      )}
-                      {type === 'project' && (
-                        <>
-                          <li className="flex items-center space-x-2">
-                            <span className="w-1.5 h-1.5 bg-purple-500 rounded-full"></span>
-                            <span>Describe your project idea</span>
-                          </li>
-                          <li className="flex items-center space-x-2">
-                            <span className="w-1.5 h-1.5 bg-purple-500 rounded-full"></span>
-                            <span>List required skills and roles</span>
-                          </li>
-                          <li className="flex items-center space-x-2">
-                            <span className="w-1.5 h-1.5 bg-purple-500 rounded-full"></span>
-                            <span>Outline collaboration terms</span>
-                          </li>
-                        </>
-                      )}
-                      {type === 'general' && (
-                        <>
-                          <li className="flex items-center space-x-2">
-                            <span className="w-1.5 h-1.5 bg-gray-500 rounded-full"></span>
-                            <span>Share thoughts, ideas, or updates</span>
-                          </li>
-                          <li className="flex items-center space-x-2">
-                            <span className="w-1.5 h-1.5 bg-gray-500 rounded-full"></span>
-                            <span>Connect with the community</span>
-                          </li>
-                          <li className="flex items-center space-x-2">
-                            <span className="w-1.5 h-1.5 bg-gray-500 rounded-full"></span>
-                            <span>Start discussions and conversations</span>
-                          </li>
-                        </>
-                      )}
-                    </ul>
                   </button>
                 );
               })}
@@ -498,8 +467,8 @@ const CreatePost: React.FC = () => {
                 <div
                   className={cn(
                     "border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200 cursor-pointer",
-                    dragActive 
-                      ? "border-green-400 bg-green-50" 
+                    dragActive
+                      ? "border-green-400 bg-green-50"
                       : "border-gray-300 hover:border-green-400 hover:bg-green-50"
                   )}
                   onDragEnter={handleDrag}

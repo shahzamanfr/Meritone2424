@@ -28,7 +28,7 @@ export default function CreateProfile() {
   const navigate = useNavigate();
   const { isAuthenticated, isEmailVerified, user } = useAuth();
   const { createProfile, uploadProfilePicture, hasProfile } = useProfile();
-  
+
   const [profileData, setProfileData] = useState<ProfileFormData>({
     name: "",
     bio: "",
@@ -95,7 +95,7 @@ export default function CreateProfile() {
     const file = event.target.files?.[0];
     if (file) {
       setProfilePictureFile(file);
-      
+
       // Create preview
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -163,7 +163,7 @@ export default function CreateProfile() {
       <div className="container mx-auto px-4 max-w-2xl">
         <Card>
           <CardHeader>
-            <CardTitle>Create Your SkillTrade Profile</CardTitle>
+            <CardTitle>Create Your MeritOne Profile</CardTitle>
             <CardDescription>
               Join our community of professionals trading skills and growing together
             </CardDescription>

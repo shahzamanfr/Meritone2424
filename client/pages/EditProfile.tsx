@@ -43,30 +43,24 @@ const EditProfile: React.FC = () => {
   });
 
   useEffect(() => {
-    console.log('EditProfile useEffect - Auth state:', { isAuthenticated, isEmailVerified, hasProfile, loading, profile });
-    
     // Check authentication and profile status
     if (!isAuthenticated) {
-      console.log('Redirecting to signin - not authenticated');
       navigate("/signin");
       return;
     }
-    
+
     if (!isEmailVerified) {
-      console.log('Redirecting to home - email not verified');
       navigate("/");
       return;
     }
-    
+
     if (!loading && !hasProfile) {
-      console.log('Redirecting to create-profile - no profile');
       navigate("/create-profile");
       return;
     }
 
     // Load existing profile data from context
     if (profile) {
-      console.log('Loading profile data:', profile);
       setProfileData({
         name: profile.name || "",
         email: profile.email || "",
@@ -90,7 +84,7 @@ const EditProfile: React.FC = () => {
         alert('Please select an image file');
         return;
       }
-      
+
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         alert('File size must be less than 5MB');
@@ -144,35 +138,29 @@ const EditProfile: React.FC = () => {
 
     try {
       setIsSubmitting(true);
-      console.log('Submitting profile update...');
-      
+
       // Handle profile picture update if changed
       let profilePictureUrl = profile?.profile_picture;
       if (profileData.profilePicture !== profile?.profile_picture) {
         if (profileData.profilePicture === "") {
           // User wants to remove the profile picture
-          console.log('Removing profile picture');
           profilePictureUrl = null;
         } else if (profileData.profilePicture.startsWith('data:')) {
           // Check if it's a new file (starts with 'data:')
-          console.log('Processing new profile picture upload...');
-          
+
           try {
             // Convert base64 to file and upload
             const response = await fetch(profileData.profilePicture);
             const blob = await response.blob();
             const file = new File([blob], 'profile-picture.jpg', { type: 'image/jpeg' });
-            
-            console.log('File created:', { name: file.name, size: file.size, type: file.type });
-            
+
             const { url, error: uploadError } = await uploadProfilePicture(file);
             if (uploadError) {
               console.error('Failed to upload profile picture:', uploadError);
               setSuccessMessage(`Failed to upload profile picture: ${uploadError}`);
               return;
             }
-            
-            console.log('Profile picture uploaded successfully:', url);
+
             profilePictureUrl = url;
           } catch (uploadError) {
             console.error('Error during profile picture upload:', uploadError);
@@ -195,8 +183,6 @@ const EditProfile: React.FC = () => {
         top_skills: profileData.skillsOffered.slice(0, 3), // First 3 skills as top skills
       };
 
-      console.log('Update data:', updateData);
-
       // Use the updateProfile function from the context
       const { error, success } = await updateProfile(updateData);
 
@@ -207,7 +193,6 @@ const EditProfile: React.FC = () => {
       }
 
       if (success) {
-        console.log('Profile updated successfully!');
         setSuccessMessage('Profile updated successfully! Redirecting...');
         // Wait a moment to show the success message, then navigate
         setTimeout(() => {
@@ -241,15 +226,15 @@ const EditProfile: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 py-4">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3 sm:space-x-4 min-w-0 flex-1">
               <button
                 onClick={() => navigate("/profile")}
-                className="text-gray-600 hover:text-green-600 transition-colors p-2 hover:bg-gray-100 rounded-lg"
+                className="text-gray-600 hover:text-green-600 transition-colors p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg flex-shrink-0"
               >
                 <svg
-                  className="w-5 h-5"
+                  className="w-4 h-4 sm:w-5 sm:h-5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -262,13 +247,13 @@ const EditProfile: React.FC = () => {
                   />
                 </svg>
               </button>
-              <h1 className="text-xl font-bold text-gray-900">Edit Profile</h1>
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900 truncate">Edit Profile</h1>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto py-8 px-4">
+      <div className="max-w-3xl mx-auto py-4 sm:py-8 px-3 sm:px-4">
         {/* Success Message */}
         {successMessage && (
           <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
@@ -280,14 +265,14 @@ const EditProfile: React.FC = () => {
             </div>
           </div>
         )}
-        
-        <form onSubmit={handleSubmit} className="space-y-8">
+
+        <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
           {/* Profile Picture Section */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-8">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6">
               Profile Photo
             </h2>
-            <div className="flex items-center space-x-6">
+            <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
               <div className="relative">
                 <img
                   src={
@@ -295,7 +280,7 @@ const EditProfile: React.FC = () => {
                     "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
                   }
                   alt="Profile"
-                  className="w-24 h-24 rounded-full border-4 border-gray-200 object-cover"
+                  className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-gray-200 object-cover"
                 />
                 <button
                   type="button"
@@ -330,19 +315,20 @@ const EditProfile: React.FC = () => {
                   className="hidden"
                 />
               </div>
-              <div>
-                <h3 className="text-md font-medium text-gray-900">
+              <div className="text-center sm:text-left">
+                <h3 className="text-sm sm:text-md font-medium text-gray-900">
                   Update your profile photo
                 </h3>
-                <p className="text-gray-600 text-sm">
+                <p className="text-gray-600 text-xs sm:text-sm mt-1">
                   Choose a clear, professional photo that represents you well
                 </p>
-                <div className="flex space-x-3 mt-3">
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 mt-3">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => fileInputRef.current?.click()}
                     className="border-green-500 text-green-600 hover:bg-green-50"
+                    size="sm"
                   >
                     Change Photo
                   </Button>
@@ -352,6 +338,7 @@ const EditProfile: React.FC = () => {
                       variant="outline"
                       onClick={() => setProfileData(prev => ({ ...prev, profilePicture: "" }))}
                       className="border-red-500 text-red-600 hover:bg-red-50"
+                      size="sm"
                     >
                       Remove Photo
                     </Button>
@@ -362,13 +349,13 @@ const EditProfile: React.FC = () => {
           </div>
 
           {/* Basic Information */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-8">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6">
               Basic Information
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                   Full Name *
                 </label>
                 <input
@@ -382,12 +369,12 @@ const EditProfile: React.FC = () => {
                       name: e.target.value,
                     }));
                   }}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm sm:text-base"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                   Email Address *
                 </label>
                 <input
@@ -400,38 +387,38 @@ const EditProfile: React.FC = () => {
                       email: e.target.value,
                     }))
                   }
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm sm:text-base"
                 />
               </div>
             </div>
 
-            <div className="mt-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="mt-4 sm:mt-6">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                 Location
               </label>
               <input
                 type="text"
                 value={profileData.location}
-                                  onChange={(e) => {
-                    setSuccessMessage(""); // Clear any previous messages
-                    setProfileData((prev) => ({
-                      ...prev,
-                      location: e.target.value,
-                    }));
-                  }}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                onChange={(e) => {
+                  setSuccessMessage(""); // Clear any previous messages
+                  setProfileData((prev) => ({
+                    ...prev,
+                    location: e.target.value,
+                  }));
+                }}
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm sm:text-base"
                 placeholder="City, Country"
               />
             </div>
           </div>
 
           {/* Bio Section */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-8">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6">
               About Me
             </h2>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                 Bio / Professional Summary
               </label>
               <textarea
@@ -440,9 +427,9 @@ const EditProfile: React.FC = () => {
                   setSuccessMessage(""); // Clear any previous messages
                   setProfileData((prev) => ({ ...prev, bio: e.target.value }));
                 }}
-                rows={4}
+                rows={3}
                 maxLength={500}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none text-sm sm:text-base"
                 placeholder="Tell us about yourself, your background, and what drives your passion for skill trading..."
               />
               <div className="flex justify-between items-center mt-1">
@@ -459,15 +446,15 @@ const EditProfile: React.FC = () => {
           </div>
 
           {/* Skills Section */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-8">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6">
               Skills I Offer
             </h2>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                 Add your skills *
               </label>
-              <div className="flex space-x-2 mb-4">
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-4">
                 <input
                   type="text"
                   value={currentSkill}
@@ -475,13 +462,14 @@ const EditProfile: React.FC = () => {
                   onKeyPress={(e) =>
                     e.key === "Enter" && (e.preventDefault(), addSkill())
                   }
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm sm:text-base"
                   placeholder="Type a skill and press Enter"
                 />
                 <Button
                   type="button"
                   onClick={addSkill}
-                  className="bg-green-600 hover:bg-green-700"
+                  className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
+                  size="sm"
                 >
                   Add
                 </Button>
@@ -509,14 +497,14 @@ const EditProfile: React.FC = () => {
           </div>
 
           {/* Work Preferences */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-8">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6">
               Work Preferences
             </h2>
 
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                   What type of work are you looking for?
                 </label>
                 <textarea
@@ -530,7 +518,7 @@ const EditProfile: React.FC = () => {
                   }}
                   rows={3}
                   maxLength={300}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none text-sm sm:text-base"
                   placeholder="Describe the type of projects, collaborations, or skill exchanges you're interested in..."
                 />
                 <div className="flex justify-between items-center mt-1">
@@ -546,10 +534,10 @@ const EditProfile: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                   Experience Level *
                 </label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
                   {(
                     [
                       "beginner",
@@ -568,7 +556,7 @@ const EditProfile: React.FC = () => {
                         }))
                       }
                       className={cn(
-                        "py-3 px-4 text-sm font-medium rounded-lg border transition-colors capitalize",
+                        "py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium rounded-lg border transition-colors capitalize",
                         profileData.experienceLevel === level
                           ? "bg-green-600 text-white border-green-600"
                           : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50",
@@ -581,10 +569,10 @@ const EditProfile: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                   Availability *
                 </label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-3">
                   {(
                     [
                       { value: "full_time", label: "Full Time" },
@@ -602,7 +590,7 @@ const EditProfile: React.FC = () => {
                         }))
                       }
                       className={cn(
-                        "py-3 px-4 text-sm font-medium rounded-lg border transition-colors",
+                        "py-2 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm font-medium rounded-lg border transition-colors",
                         profileData.availability === option.value
                           ? "bg-green-600 text-white border-green-600"
                           : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50",
@@ -617,27 +605,31 @@ const EditProfile: React.FC = () => {
           </div>
 
           {/* Save Button */}
-          <div className="flex justify-end space-x-4">
+          <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4">
             <Button
               type="button"
               variant="outline"
               onClick={() => navigate("/profile")}
-              className="px-6"
+              className="px-4 sm:px-6 w-full sm:w-auto order-2 sm:order-1"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="px-8 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 sm:px-8 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto order-1 sm:order-2"
             >
               {isSubmitting ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Saving...
+                  <span className="hidden sm:inline">Saving...</span>
+                  <span className="sm:hidden">Saving...</span>
                 </>
               ) : (
-                'Save Changes'
+                <>
+                  <span className="hidden sm:inline">Save Changes</span>
+                  <span className="sm:hidden">Save</span>
+                </>
               )}
             </Button>
           </div>

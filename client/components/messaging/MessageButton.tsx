@@ -4,6 +4,7 @@ import { MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 type Props = {
   userId: string;
@@ -15,6 +16,7 @@ type Props = {
 export const MessageButton: React.FC<Props> = ({ userId, userName, className, variant = "outline" }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const isInvalidTarget = !userId || userId === "current-user";
 
   return (
@@ -24,16 +26,26 @@ export const MessageButton: React.FC<Props> = ({ userId, userName, className, va
           navigate("/signin");
           return;
         }
-        if (isInvalidTarget || userId === user.id) return;
+        if (isInvalidTarget) return;
+
+        if (userId === user.id) {
+          toast({
+            title: "You can't message yourself",
+            description: "You cannot start a conversation with your own account.",
+            variant: "destructive",
+          });
+          return;
+        }
+
         navigate("/messages", { state: { openWithUserId: userId } });
       }}
       variant={variant}
       className={cn("text-sm", className)}
-      disabled={isInvalidTarget || (!!user && userId === user.id)}
+      disabled={isInvalidTarget}
       title={userName ? `Message ${userName}` : "Message"}
     >
-      <MessageCircle className="w-4 h-4 mr-2" />
-      Message
+      <MessageCircle className="w-4 h-4 sm:mr-2" />
+      <span className="hidden sm:inline">Message</span>
     </Button>
   );
 };

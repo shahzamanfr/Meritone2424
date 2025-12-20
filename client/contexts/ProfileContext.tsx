@@ -89,17 +89,17 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
       const filePath = fileName; // Simplified path structure
 
-      console.log('Uploading profile picture:', { 
-        filePath, 
-        fileSize: file.size, 
+      console.log('Uploading profile picture:', {
+        filePath,
+        fileSize: file.size,
         fileType: file.type,
-        userId: user.id 
+        userId: user.id
       });
 
       // First, check if the bucket exists
       const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
       console.log('Available buckets:', buckets);
-      
+
       if (bucketError) {
         console.error('Bucket list error:', bucketError);
       }
@@ -116,18 +116,18 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         return { error: error.message };
       }
 
-      console.log('Upload successful:', data);
+      if (import.meta.env.DEV) console.log('Upload successful:', data);
 
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
 
       console.log('Public URL:', publicUrl);
-      
+
       // Ensure the URL is complete and correct
       const fullUrl = publicUrl || `https://mphkcuxbsggnbtvzemxf.supabase.co/storage/v1/object/public/avatars/${filePath}`;
       console.log('Full URL:', fullUrl);
-      
+
       return { url: fullUrl };
     } catch (error) {
       console.error('Upload error:', error);

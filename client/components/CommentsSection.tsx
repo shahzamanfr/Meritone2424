@@ -5,10 +5,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/contexts/ProfileContext';
 import { usePosts, type Comment } from '@/contexts/PostsContext';
 import { formatDistanceToNow } from 'date-fns';
-import { 
-  Send, 
-  Trash2, 
-  MoreHorizontal, 
+import {
+  Send,
+  Trash2,
+  MoreHorizontal,
   MessageCircle,
   User,
   Loader2
@@ -18,12 +18,14 @@ interface CommentsSectionProps {
   postId: string;
   commentsCount: number;
   onCommentAdded?: () => void;
+  onToggleComments?: (toggle: () => void) => void;
 }
 
 export const CommentsSection: React.FC<CommentsSectionProps> = ({
   postId,
   commentsCount,
-  onCommentAdded
+  onCommentAdded,
+  onToggleComments
 }) => {
   const { user } = useAuth();
   const { addComment, deleteComment, loadComments } = usePosts();
@@ -32,7 +34,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
   const [newComment, setNewComment] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showComments, setShowComments] = useState(true);
+  const [showComments, setShowComments] = useState(false);
 
   const loadPostComments = async () => {
     setIsLoading(true);
@@ -58,7 +60,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
     setIsSubmitting(true);
     try {
       const { error, success } = await addComment(postId, newComment.trim());
-      
+
       if (success) {
         setNewComment('');
         await loadPostComments();
@@ -76,7 +78,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
   const handleDeleteComment = async (commentId: string) => {
     try {
       const { error, success } = await deleteComment(commentId);
-      
+
       if (success) {
         // Remove comment from local state
         setComments(prev => prev.filter(comment => comment.id !== commentId));
@@ -89,8 +91,14 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
   };
 
   const toggleComments = () => {
-    setShowComments(!showComments);
+    setShowComments(prev => !prev);
   };
+
+  useEffect(() => {
+    if (onToggleComments) {
+      onToggleComments(toggleComments);
+    }
+  }, [onToggleComments]);
 
   return (
     <div className="border-t border-gray-100 bg-gray-50">
