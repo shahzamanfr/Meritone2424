@@ -8,28 +8,43 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePosts, type Post } from "@/contexts/PostsContext";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/lib/supabase";
-import { 
-  Heart, 
-  Share2, 
-  MoreHorizontal, 
-  Filter, 
+import {
+  Heart,
+  MessageSquare,
+  Share2,
+  MoreHorizontal,
+  Filter,
   Search,
   FileIcon,
   Calendar,
   Star,
   Users,
-  Clock
+  Clock,
+  Plus,
+  Home,
+  TrendingUp,
+  Award,
+  Globe,
+  Eye,
+  Briefcase,
+  Bell
 } from "lucide-react";
 import { MessageButton } from "@/components/messaging/MessageButton";
+import { useProfile } from "@/contexts/ProfileContext";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 
 const SocialFeed: React.FC = () => {
+
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
-  const { posts, loading, likePost, unlikePost, refreshPosts } = usePosts();
+  const { posts, loading, hasMore, loadMorePosts, likePost, unlikePost, refreshPosts } = usePosts();
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [filterType, setFilterType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const { profile: currentUserProfile } = useProfile();
   const [sortBy, setSortBy] = useState<'latest' | 'popular'>('latest');
+  const commentTogglesRef = React.useRef<Map<string, () => void>>(new Map());
+
 
   // Filter and sort posts
   const filteredPosts = posts
@@ -38,8 +53,8 @@ const SocialFeed: React.FC = () => {
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         return (
-          post.title.toLowerCase().includes(query) ||
-          post.content.toLowerCase().includes(query) ||
+          post.title?.toLowerCase().includes(query) ||
+          post.content?.toLowerCase().includes(query) ||
           post.user?.name?.toLowerCase().includes(query) ||
           post.skills_offered?.some(skill => skill.toLowerCase().includes(query)) ||
           post.skills_needed?.some(skill => skill.toLowerCase().includes(query))
@@ -53,6 +68,14 @@ const SocialFeed: React.FC = () => {
       }
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
+
+  // Infinite scroll hook
+  const loadMoreRef = useInfiniteScroll({
+    loading,
+    hasMore,
+    onLoadMore: loadMorePosts,
+    threshold: 400
+  });
 
   const handleLike = async (postId: string) => {
     const post = posts.find(p => p.id === postId);
@@ -68,60 +91,92 @@ const SocialFeed: React.FC = () => {
   const getPostTypeInfo = (type: string) => {
     switch (type) {
       case 'skill_offer':
-        return { label: 'Skill Offer', color: 'bg-green-100 text-green-800', icon: '💼' };
+        return {
+          label: 'Offering Skills',
+          color: 'text-gray-700',
+          bgColor: 'bg-gray-100 border-gray-200',
+          icon: Briefcase
+        };
       case 'skill_request':
-        return { label: 'Skill Request', color: 'bg-blue-100 text-blue-800', icon: '🔍' };
+        return {
+          label: 'Seeking Skills',
+          color: 'text-gray-700',
+          bgColor: 'bg-gray-100 border-gray-200',
+          icon: Search
+        };
       case 'project':
-        return { label: 'Project', color: 'bg-purple-100 text-purple-800', icon: '🤝' };
+        return {
+          label: 'Project',
+          color: 'text-gray-700',
+          bgColor: 'bg-gray-100 border-gray-200',
+          icon: Star
+        };
       case 'general':
-        return { label: 'General', color: 'bg-gray-100 text-gray-800', icon: '📝' };
+        return {
+          label: 'General',
+          color: 'text-gray-700',
+          bgColor: 'bg-gray-100 border-gray-200',
+          icon: Globe
+        };
       default:
-        return { label: type, color: 'bg-gray-100 text-gray-800', icon: '📝' };
+        return {
+          label: type,
+          color: 'text-gray-700',
+          bgColor: 'bg-gray-100 border-gray-200',
+          icon: Globe
+        };
     }
+  };
+
+  const experienceColors = {
+    beginner: 'bg-green-50 text-green-700 border-green-200',
+    intermediate: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+    advanced: 'bg-orange-50 text-orange-700 border-orange-200',
+    expert: 'bg-red-50 text-red-700 border-red-200',
+    default: 'bg-gray-50 text-gray-700 border-gray-200',
   };
 
   const getExperienceColor = (level: string) => {
-    switch (level) {
-      case 'beginner': return 'bg-green-100 text-green-700';
-      case 'intermediate': return 'bg-yellow-100 text-yellow-700';
-      case 'advanced': return 'bg-orange-100 text-orange-700';
-      case 'expert': return 'bg-red-100 text-red-700';
-      default: return 'bg-gray-100 text-gray-700';
-    }
+    return experienceColors[level as keyof typeof experienceColors] || experienceColors.default;
+  };
+
+  const availabilityColors = {
+    full_time: 'bg-blue-50 text-blue-700 border-blue-200',
+    part_time: 'bg-purple-50 text-purple-700 border-purple-200',
+    project_based: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+    default: 'bg-gray-50 text-gray-700 border-gray-200',
   };
 
   const getAvailabilityColor = (availability: string) => {
-    switch (availability) {
-      case 'full_time': return 'bg-blue-100 text-blue-700';
-      case 'part_time': return 'bg-purple-100 text-purple-700';
-      case 'project_based': return 'bg-indigo-100 text-indigo-700';
-      default: return 'bg-gray-100 text-gray-700';
-    }
+    return availabilityColors[availability as keyof typeof availabilityColors] || availabilityColors.default;
   };
 
   const renderMediaPreview = (mediaUrl: string, index: number) => {
-    if (mediaUrl.startsWith('data:image/')) {
+    if (mediaUrl.startsWith('data:image/') || mediaUrl.match(/\.(jpeg|jpg|gif|png)$/i)) {
       return (
         <img
           src={mediaUrl}
           alt={`Post media ${index + 1}`}
-          className="w-full h-48 object-cover rounded-lg border border-gray-200 hover:opacity-90 transition-opacity cursor-pointer"
+          className="w-full max-h-96 object-cover cursor-pointer hover:opacity-95 transition-opacity"
           onClick={() => window.open(mediaUrl, '_blank')}
         />
       );
-    } else if (mediaUrl.startsWith('data:video/')) {
+    } else if (mediaUrl.startsWith('data:video/') || mediaUrl.match(/\.(mp4|webm|ogg)$/i)) {
       return (
         <video
           src={mediaUrl}
-          className="w-full h-48 object-cover rounded-lg border border-gray-200"
+          className="w-full max-h-96 object-cover"
           controls
           preload="metadata"
         />
       );
     } else {
       return (
-        <div className="w-full h-48 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center">
-          <FileIcon className="w-8 h-8 text-gray-400" />
+        <div className="w-full h-48 bg-gray-50 rounded-lg flex items-center justify-center">
+          <div className="text-center">
+            <FileIcon className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+            <span className="text-sm text-gray-500">Attachment</span>
+          </div>
         </div>
       );
     }
@@ -129,294 +184,427 @@ const SocialFeed: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading posts...</p>
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading your feed...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Professional Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            {/* Logo & Navigation */}
-            <div className="flex items-center space-x-4">
+    <div className="min-h-screen bg-gray-50">
+      {/* LinkedIn-style Header */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between px-3 sm:px-6 py-3">
+            {/* Left Section - Logo & Search */}
+            <div className="flex items-center space-x-2 sm:space-x-6 flex-1">
               <button
                 onClick={() => navigate("/")}
-                className="text-gray-600 hover:text-green-600 transition-colors p-2 hover:bg-gray-100 rounded-lg"
-                title="Back to home"
+                className="flex items-center space-x-2 sm:space-x-3 hover:bg-gray-100 px-2 sm:px-3 py-2 rounded-lg transition-colors"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <span className="text-white font-bold text-lg">ST</span>
+                <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-r from-green-600 to-green-700 rounded-lg flex items-center justify-center shadow-sm">
+                  <span className="text-white font-bold text-xs sm:text-sm">SO</span>
                 </div>
-                <div>
-                  <h1 className="text-xl font-bold text-gray-900">SkillTrade Feed</h1>
-                  <p className="text-sm text-gray-500">{filteredPosts.length} posts</p>
+                <span className="hidden sm:block text-lg sm:text-xl font-bold text-gray-900">MeritOne</span>
+              </button>
+
+              <div className="hidden md:block relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search posts, skills, people..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 pr-4 py-2 w-full bg-gray-100 border-0 rounded-md text-sm placeholder-gray-500 focus:bg-white focus:ring-2 focus:ring-green-500 focus:outline-none transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Right Section - Navigation & Actions */}
+            <div className="flex items-center space-x-0.5 sm:space-x-1">
+              <button
+                onClick={() => navigate('/')}
+                className="hidden sm:flex flex-col items-center p-2 sm:p-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors min-w-[48px] sm:min-w-[64px]"
+              >
+                <Home className="w-5 h-5 sm:w-6 sm:h-6" />
+                <span className="text-xs mt-1 hidden lg:block">Home</span>
+              </button>
+
+              <div className="relative hidden sm:block">
+                <button className="flex flex-col items-center p-2 sm:p-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors min-w-[48px] sm:min-w-[64px]">
+                  <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <span className="text-xs mt-1 hidden lg:block">Trending</span>
+                </button>
+              </div>
+
+              <div className="relative">
+                <button className="flex flex-col items-center p-2 sm:p-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors min-w-[48px] sm:min-w-[64px] relative">
+                  <Bell className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <span className="text-xs mt-1 hidden lg:block">Notifications</span>
+                  <div className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></div>
+                </button>
+              </div>
+
+              <div className="flex items-center space-x-2 sm:space-x-3 ml-2 sm:ml-6 pl-2 sm:pl-6 border-l border-gray-200">
+                <img
+                  src={currentUserProfile?.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUserProfile?.name || 'S')}&background=0D8ABC&color=fff`}
+                  alt="Profile"
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-gray-200"
+                />
+                <Button
+                  onClick={() => navigate("/create-post")}
+                  size="sm"
+                  className="bg-gray-900 hover:bg-black text-white font-medium px-4 py-2 rounded-full shadow-md transition-all hover:scale-105 active:scale-95"
+                >
+                  <Plus className="w-5 h-5 sm:mr-2" />
+                  <span className="hidden sm:inline text-sm">Create Post</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto py-6">
+        <div className="flex gap-6 px-4 sm:px-6">
+          {/* Left Sidebar */}
+          <div className="hidden lg:block w-64 flex-shrink-0">
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm sticky top-20">
+              {/* Profile Cover */}
+              <div className="h-16 bg-gradient-to-r from-green-600 to-green-700"></div>
+
+              {/* Profile Info */}
+              <div className="p-4 text-center -mt-8">
+                <img
+                  src={currentUserProfile?.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUserProfile?.name || 'S')}&background=0D8ABC&color=fff`}
+                  alt="Profile"
+                  className="w-16 h-16 rounded-full mx-auto mb-3 border-4 border-white shadow-sm"
+                />
+                <h3 className="font-semibold text-gray-900">{currentUserProfile?.name || "Your Name"}</h3>
+                <p className="text-sm text-gray-500 mt-1">Professional Network</p>
+              </div>
+
+              {/* Stats */}
+              <div className="px-4 pb-4 space-y-2 text-sm border-t border-gray-100 pt-4">
+                <div className="flex justify-between items-center hover:bg-gray-50 px-2 py-1 rounded">
+                  <span className="text-gray-600">Profile views</span>
+                  <span className="font-semibold text-green-600">24</span>
+                </div>
+                <div className="flex justify-between items-center hover:bg-gray-50 px-2 py-1 rounded">
+                  <span className="text-gray-600">Post impressions</span>
+                  <span className="font-semibold text-green-600">156</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Main Feed - Centered */}
+          <div className="w-full lg:max-w-2xl flex-shrink-0">
+            {/* Create Post Widget */}
+            <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4 shadow-sm">
+              <div className="flex items-center space-x-3">
+                <img
+                  src={currentUserProfile?.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUserProfile?.name || 'S')}&background=0D8ABC&color=fff`}
+                  alt="Profile"
+                  className="w-12 h-12 rounded-full object-cover"
+                />
+                <button
+                  onClick={() => navigate("/create-post")}
+                  className="flex-1 text-left px-4 py-3 border border-gray-300 rounded-full text-gray-500 hover:bg-gray-50 transition-colors text-sm"
+                >
+                  Start a post about your skills...
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+                <div className="flex items-center space-x-4">
+                  <button
+                    onClick={() => setSortBy('latest')}
+                    className={cn(
+                      "px-3 py-2 rounded-full text-sm font-medium transition-colors",
+                      sortBy === 'latest'
+                        ? "bg-green-100 text-green-700"
+                        : "text-gray-600 hover:bg-gray-100"
+                    )}
+                  >
+                    Recent
+                  </button>
+                  <button
+                    onClick={() => setSortBy('popular')}
+                    className={cn(
+                      "px-3 py-2 rounded-full text-sm font-medium transition-colors",
+                      sortBy === 'popular'
+                        ? "bg-green-100 text-green-700"
+                        : "text-gray-600 hover:bg-gray-100"
+                    )}
+                  >
+                    Popular
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                    className="appearance-none pl-3 pr-8 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white text-sm"
+                  >
+                    <option value="all">All Posts</option>
+                    <option value="skill_offer">Skill Offers</option>
+                    <option value="skill_request">Skill Requests</option>
+                    <option value="project">Projects</option>
+                    <option value="general">General</option>
+                  </select>
+                  <Filter className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 </div>
               </div>
             </div>
 
-                         {/* Search and Actions */}
-             <div className="flex items-center space-x-3">
-               {/* Search */}
-               <div className="relative">
-                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                 <input
-                   type="text"
-                   placeholder="Search posts..."
-                   value={searchQuery}
-                   onChange={(e) => setSearchQuery(e.target.value)}
-                   className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 w-64"
-                 />
-               </div>
+            {/* Posts Feed */}
+            {filteredPosts.length === 0 ? (
+              <div className="bg-white rounded-lg border border-gray-200 p-12 text-center shadow-sm">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Search className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">No posts to show</h3>
+                <p className="text-gray-600 mb-6">
+                  {searchQuery || filterType !== 'all'
+                    ? 'Try adjusting your search or filters'
+                    : 'Be the first to share something with your network!'
+                  }
+                </p>
+                <Button
+                  onClick={() => navigate("/create-post")}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  Create Your First Post
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {filteredPosts.map((post) => {
+                  const postTypeInfo = getPostTypeInfo(post.post_type);
+                  const IconComponent = postTypeInfo.icon;
 
-               {/* Filter */}
-               <div className="relative">
-                 <select
-                   value={filterType}
-                   onChange={(e) => setFilterType(e.target.value)}
-                   className="appearance-none pl-4 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white"
-                 >
-                   <option value="all">All Posts</option>
-                   <option value="skill_offer">Skill Offers</option>
-                   <option value="skill_request">Skill Requests</option>
-                   <option value="project">Projects</option>
-                   <option value="general">General</option>
-                 </select>
-                 <Filter className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-               </div>
+                  return (
+                    <article
+                      key={post.id}
+                      className="bg-white rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-200 overflow-hidden"
+                    >
+                      {/* Post Header - More Spacious */}
+                      <div className="p-8 pb-6">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start space-x-4 flex-1 min-w-0">
+                            <img
+                              src={
+                                post.user?.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.user?.name || 'A')}&background=random`
+                              }
+                              alt={post.user?.name || "User"}
+                              className="w-14 h-14 rounded-full object-cover flex-shrink-0 cursor-pointer hover:ring-4 hover:ring-green-100 transition-all"
+                              onClick={() => navigate(`/profile/${post.user_id}`)}
+                              onError={(e) => {
+                                const name = post.user?.name || 'A';
+                                e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
+                              }}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-3 mb-2">
+                                <h3
+                                  className="font-semibold text-lg text-gray-900 cursor-pointer hover:text-green-600 transition-colors"
+                                  onClick={() => navigate(`/profile/${post.user_id}`)}
+                                >
+                                  {post.user?.name || "Anonymous User"}
+                                </h3>
+                                <span className="text-gray-300">•</span>
+                                <span className="text-sm text-gray-500">
+                                  {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className={cn("inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border", postTypeInfo.bgColor)}>
+                                  <IconComponent className={cn("w-3.5 h-3.5", postTypeInfo.color)} />
+                                  <span className={postTypeInfo.color}>{postTypeInfo.label}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <button className="text-gray-400 hover:text-gray-600 hover:bg-gray-50 p-2.5 rounded-full transition-colors flex-shrink-0">
+                            <MoreHorizontal className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </div>
 
-               {/* Sort */}
-               <div className="relative">
-                 <select
-                   value={sortBy}
-                   onChange={(e) => setSortBy(e.target.value as 'latest' | 'popular')}
-                   className="appearance-none pl-4 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white"
-                 >
-                   <option value="latest">Latest</option>
-                   <option value="popular">Popular</option>
-                 </select>
-                 <Clock className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-               </div>
+                      {/* Post Content - Generous Spacing */}
+                      <div className="px-8 pb-6 space-y-4">
+                        {post.title && (
+                          <h4 className="font-semibold text-xl text-gray-900 leading-tight">{post.title}</h4>
+                        )}
+                        <p className="text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
+                          {post.content}
+                        </p>
+                      </div>
 
-               {/* Notifications */}
-               <NotificationBell />
+                      {/* Post Media */}
+                      {post.media_urls && post.media_urls.length > 0 && (
+                        <div className="mb-6">
+                          <div className="space-y-0">
+                            {post.media_urls.map((mediaUrl, index) => (
+                              <div key={index} className="overflow-hidden">
+                                {renderMediaPreview(mediaUrl, index)}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
-               <Button
-                 onClick={() => navigate("/create-post")}
-                 className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
-               >
-                 Create Post
-               </Button>
-             </div>
+                      {/* Skills Section - Clean & Spacious */}
+                      {(post.skills_offered?.length > 0 || post.skills_needed?.length > 0) && (
+                        <div className="px-8 pb-6">
+                          <div className="bg-gray-50 rounded-xl p-6 space-y-5">
+                            {post.skills_offered?.length > 0 && (
+                              <div>
+                                <h5 className="text-sm font-semibold text-gray-700 mb-3">Skills Offered</h5>
+                                <div className="flex flex-wrap gap-2">
+                                  {post.skills_offered.map((skill, index) => (
+                                    <span
+                                      key={index}
+                                      className="inline-flex items-center px-4 py-2 bg-white text-gray-800 rounded-lg text-sm font-medium border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all"
+                                    >
+                                      {skill}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {post.skills_needed?.length > 0 && (
+                              <div>
+                                <h5 className="text-sm font-semibold text-gray-700 mb-3">Looking For</h5>
+                                <div className="flex flex-wrap gap-2">
+                                  {post.skills_needed.map((skill, index) => (
+                                    <span
+                                      key={index}
+                                      className="inline-flex items-center px-4 py-2 bg-white text-gray-800 rounded-lg text-sm font-medium border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all"
+                                    >
+                                      {skill}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Additional Info - Refined */}
+                      {(post.experience_level || post.availability || post.deadline) && (
+                        <div className="px-8 pb-6">
+                          <div className="flex flex-wrap gap-2">
+                            {post.experience_level && (
+                              <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-gray-50 text-gray-700">
+                                <Award className="w-4 h-4" />
+                                <span>{post.experience_level.charAt(0).toUpperCase() + post.experience_level.slice(1)}</span>
+                              </div>
+                            )}
+                            {post.availability && (
+                              <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-gray-50 text-gray-700">
+                                <Clock className="w-4 h-4" />
+                                <span>{post.availability.replace('_', ' ').charAt(0).toUpperCase() + post.availability.replace('_', ' ').slice(1)}</span>
+                              </div>
+                            )}
+                            {post.deadline && (
+                              <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-gray-50 text-gray-700">
+                                <Calendar className="w-4 h-4" />
+                                <span>Due {new Date(post.deadline).toLocaleDateString()}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Likes Count - Clean */}
+                      {
+                        post.likes_count > 0 && (
+                          <div className="px-8 pb-4">
+                            <p className="text-sm font-semibold text-gray-900">
+                              {post.likes_count} {post.likes_count === 1 ? 'like' : 'likes'}
+                            </p>
+                          </div>
+                        )
+                      }
+
+                      {/* Action Buttons - Spacious & Clean */}
+                      <div className="border-t border-gray-100 px-6 py-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center flex-1 gap-1">
+                            <button
+                              onClick={() => handleLike(post.id)}
+                              className={cn(
+                                "flex items-center justify-center gap-2 px-5 py-3 rounded-xl hover:bg-gray-50 transition-all text-sm font-medium flex-1",
+                                post.isLiked
+                                  ? "text-blue-600"
+                                  : "text-gray-600 hover:text-blue-600"
+                              )}
+                            >
+                              <Heart className={cn("w-5 h-5", post.isLiked ? "fill-current" : "")} />
+                              <span className="hidden sm:inline">Like</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                const toggle = commentTogglesRef.current.get(post.id);
+                                if (toggle) toggle();
+                              }}
+                              className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl hover:bg-gray-50 transition-all text-sm font-medium text-gray-600 hover:text-blue-600 flex-1"
+                            >
+                              <MessageSquare className="w-5 h-5" />
+                              <span className="hidden sm:inline">Comment</span>
+                            </button>
+                            <button className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl hover:bg-gray-50 transition-all text-sm font-medium text-gray-600 hover:text-green-600 flex-1">
+                              <Share2 className="w-5 h-5" />
+                              <span className="hidden sm:inline">Share</span>
+                            </button>
+                          </div>
+                          <div className="pl-3 ml-3 border-l border-gray-200">
+                            <MessageButton
+                              userId={post.user_id}
+                              userName={post.user?.name}
+                              className="px-5 py-3 text-sm font-medium text-gray-600 hover:text-green-600 hover:bg-gray-50 rounded-xl transition-all"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Comments Section */}
+                      <CommentsSection
+                        postId={post.id}
+                        commentsCount={post.comments_count}
+                        onToggleComments={(toggle) => {
+                          commentTogglesRef.current.set(post.id, toggle);
+                        }}
+                      />
+                    </article>
+                  );
+                })}
+
+                {/* Infinite Scroll Trigger */}
+                <div ref={loadMoreRef} className="py-8">
+                  {loading && hasMore && (
+                    <div className="flex justify-center">
+                      <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
+                  {!hasMore && filteredPosts.length > 0 && (
+                    <p className="text-center text-gray-500 text-sm">You've reached the end of the feed</p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
-
-      {/* Posts Feed */}
-      <div className="max-w-4xl mx-auto py-8 px-4">
-        {filteredPosts.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search className="w-12 h-12 text-gray-400" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No posts found</h3>
-            <p className="text-gray-600 mb-6">
-              {searchQuery || filterType !== 'all' 
-                ? 'Try adjusting your search or filters'
-                : 'Be the first to create a post!'
-              }
-            </p>
-            <Button
-              onClick={() => navigate("/create-post")}
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg"
-            >
-              Create Your First Post
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {filteredPosts.map((post) => {
-              const postTypeInfo = getPostTypeInfo(post.post_type);
-              
-              return (
-                <div
-                  key={post.id}
-                  className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden"
-                >
-                  {/* Post Header */}
-                  <div className="p-6 border-b border-gray-100">
-                    <div className="flex items-start space-x-4">
-                      <img
-                        src={
-                          post.user?.profile_picture ||
-                          "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
-                        }
-                        alt={post.user?.name || "User"}
-                        className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
-                        onError={(e) => {
-                          e.currentTarget.src = "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face";
-                        }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <h3 className="font-semibold text-gray-900 truncate">
-                            {post.user?.name || "Anonymous User"}
-                          </h3>
-                          <span className={cn(
-                            "px-2 py-1 text-xs font-medium rounded-full flex items-center space-x-1",
-                            postTypeInfo.color
-                          )}>
-                            <span>{postTypeInfo.icon}</span>
-                            <span>{postTypeInfo.label}</span>
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-500">
-                          {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
-                        </p>
-                      </div>
-                      <button className="text-gray-400 hover:text-gray-600 transition-colors p-1">
-                        <MoreHorizontal className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Post Content */}
-                  <div className="p-6">
-                    <h4 className="font-semibold text-gray-900 mb-3 text-lg">{post.title}</h4>
-                    <p className="text-gray-700 whitespace-pre-wrap mb-4 leading-relaxed">{post.content}</p>
-
-                    {/* Post Media/Images */}
-                    {post.media_urls && post.media_urls.length > 0 && (
-                      <div className="mb-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {post.media_urls.map((mediaUrl, index) => (
-                            <div key={index} className="relative group">
-                              {renderMediaPreview(mediaUrl, index)}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Skills */}
-                    {(post.skills_offered?.length > 0 || post.skills_needed?.length > 0) && (
-                      <div className="mb-6">
-                        {post.skills_offered?.length > 0 && (
-                          <div className="mb-3">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <Users className="w-4 h-4 text-green-600" />
-                              <span className="text-sm font-medium text-green-600">Offering</span>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {post.skills_offered.map((skill, index) => (
-                                <span
-                                  key={index}
-                                  className="px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm font-medium border border-green-200"
-                                >
-                                  {skill}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        {post.skills_needed?.length > 0 && (
-                          <div>
-                            <div className="flex items-center space-x-2 mb-2">
-                              <Star className="w-4 h-4 text-blue-600" />
-                              <span className="text-sm font-medium text-blue-600">Seeking</span>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {post.skills_needed.map((skill, index) => (
-                                <span
-                                  key={index}
-                                  className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm font-medium border border-blue-200"
-                                >
-                                  {skill}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Additional Info */}
-                    <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
-                      {post.experience_level && (
-                        <div className="flex items-center space-x-1">
-                          <Star className="w-4 h-4" />
-                          <span className={cn("px-2 py-1 rounded-full text-xs font-medium", getExperienceColor(post.experience_level))}>
-                            {post.experience_level}
-                          </span>
-                        </div>
-                      )}
-                      {post.availability && (
-                        <div className="flex items-center space-x-1">
-                          <Clock className="w-4 h-4" />
-                          <span className={cn("px-2 py-1 rounded-full text-xs font-medium", getAvailabilityColor(post.availability))}>
-                            {post.availability.replace('_', ' ')}
-                          </span>
-                        </div>
-                      )}
-                      {post.deadline && (
-                        <div className="flex items-center space-x-1">
-                          <Calendar className="w-4 h-4" />
-                          <span>Deadline: {new Date(post.deadline).toLocaleDateString()}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Post Actions */}
-                  <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-6">
-                        <button
-                          onClick={() => handleLike(post.id)}
-                          className={cn(
-                            "flex items-center space-x-2 text-sm transition-colors",
-                            post.isLiked
-                              ? "text-red-600 hover:text-red-700"
-                              : "text-gray-500 hover:text-red-600"
-                          )}
-                        >
-                          <Heart className={cn("w-5 h-5", post.isLiked ? "fill-current" : "fill-none")} />
-                          <span>{post.likes_count} likes</span>
-                        </button>
-                        <button className="flex items-center space-x-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
-                          <Share2 className="w-5 h-5" />
-                          <span>Share</span>
-                        </button>
-                      </div>
-                      <MessageButton userId={post.user_id} userName={post.user?.name} />
-                    </div>
-                  </div>
-
-                  {/* Comments Section */}
-                  <CommentsSection 
-                    postId={post.id} 
-                    commentsCount={post.comments_count}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Floating Message Button removed during messaging refactor */}
-    </div>
+    </div >
   );
 };
 

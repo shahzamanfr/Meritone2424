@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { handleDemo } from "./routes/demo";
+// import { handleUserSearch } from "./routes/user-search";
 
 export function createServer() {
   const app = express();
@@ -18,6 +19,8 @@ export function createServer() {
   });
 
   app.get("/api/demo", handleDemo);
+
+  // User search now handled client-side via Supabase; server route disabled
 
   return app;
 }

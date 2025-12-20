@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Search, UserPlus, MessageCircle } from 'lucide-react';
+import { Search, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { useMessaging } from '@/contexts/MessagingContext';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 
 interface User {
   user_id: string;
@@ -22,11 +22,11 @@ interface UserSearchProps {
 
 export const UserSearch: React.FC<UserSearchProps> = ({ onUserSelect, className }) => {
   const { user } = useAuth();
-  const { createConversation, isFollowing, followUser, unfollowUser } = useMessaging();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [following, setFollowing] = useState<Set<string>>(new Set());
 
   const searchUsers = async (query: string) => {
     if (!query.trim() || !user) return;
@@ -61,22 +61,51 @@ export const UserSearch: React.FC<UserSearchProps> = ({ onUserSelect, className 
     return () => clearTimeout(debounceTimer);
   }, [searchTerm]);
 
-  const handleMessageUser = async (userToMessage: User) => {
-    if (!user) return;
-
-    const conversationId = await createConversation([userToMessage.user_id]);
-    if (conversationId && onUserSelect) {
-      onUserSelect(userToMessage);
-    }
-  };
-
   const handleFollowUser = async (userToFollow: User) => {
     if (!user) return;
 
-    if (isFollowing(userToFollow.user_id)) {
-      await unfollowUser(userToFollow.user_id);
+    try {
+      const isCurrentlyFollowing = following.has(userToFollow.user_id);
+      
+      if (isCurrentlyFollowing) {
+        // Unfollow
+        const { error } = await supabase
+          .from('follows')
+          .delete()
+          .eq('follower_id', user.id)
+          .eq('following_id', userToFollow.user_id);
+        
+        if (!error) {
+          setFollowing(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(userToFollow.user_id);
+            return newSet;
+          });
+        }
+      } else {
+        // Follow
+        const { error } = await supabase
+          .from('follows')
+          .insert({
+            follower_id: user.id,
+            following_id: userToFollow.user_id
+          });
+        
+        if (!error) {
+          setFollowing(prev => new Set(prev).add(userToFollow.user_id));
+        }
+      }
+    } catch (error) {
+      console.error('Error following/unfollowing user:', error);
+    }
+  };
+
+  const handleProfileClick = (userToView: User) => {
+    if (onUserSelect) {
+      onUserSelect(userToView);
     } else {
-      await followUser(userToFollow.user_id);
+      // Navigate to the specific user's profile page
+      navigate(`/profile/${userToView.user_id}`);
     }
   };
 
@@ -121,8 +150,13 @@ export const UserSearch: React.FC<UserSearchProps> = ({ onUserSelect, className 
               className="w-10 h-10 rounded-full object-cover"
             />
             
-            <div className="flex-1 min-w-0">
-              <h4 className="font-medium text-gray-900 truncate">{userResult.name}</h4>
+            <div 
+              className="flex-1 min-w-0 cursor-pointer"
+              onClick={() => handleProfileClick(userResult)}
+            >
+              <h4 className="font-medium text-gray-900 truncate hover:text-green-600 transition-colors">
+                {userResult.name}
+              </h4>
               <p className="text-sm text-gray-500 truncate">{userResult.email}</p>
               {userResult.location && (
                 <p className="text-xs text-gray-400">📍 {userResult.location}</p>
@@ -131,27 +165,26 @@ export const UserSearch: React.FC<UserSearchProps> = ({ onUserSelect, className 
 
             <div className="flex items-center space-x-2">
               <Button
-                onClick={() => handleMessageUser(userResult)}
+                onClick={() => handleProfileClick(userResult)}
                 size="sm"
                 variant="outline"
-                className="text-green-600 border-green-600 hover:bg-green-50"
+                className="text-blue-600 border-blue-600 hover:bg-blue-50"
               >
-                <MessageCircle className="w-4 h-4 mr-1" />
-                Message
+                View Profile
               </Button>
               
               <Button
                 onClick={() => handleFollowUser(userResult)}
                 size="sm"
-                variant={isFollowing(userResult.user_id) ? "outline" : "default"}
+                variant={following.has(userResult.user_id) ? "outline" : "default"}
                 className={cn(
-                  isFollowing(userResult.user_id)
+                  following.has(userResult.user_id)
                     ? "border-red-500 text-red-600 hover:bg-red-50"
                     : "bg-green-600 hover:bg-green-700"
                 )}
               >
                 <UserPlus className="w-4 h-4 mr-1" />
-                {isFollowing(userResult.user_id) ? "Following" : "Follow"}
+                {following.has(userResult.user_id) ? "Following" : "Follow"}
               </Button>
             </div>
           </div>

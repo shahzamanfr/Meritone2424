@@ -1,7 +1,17 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = 'https://mphkcuxbsggnbtvzemxf.supabase.co'
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1waGtjdXhic2dnbmJ0dnplbXhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU3ODg4NTYsImV4cCI6MjA3MTM2NDg1Nn0.E-QvvbZPu66kO4XlLOTdkQRjrOUqWM7B2D-e8qw5eQE'
+// Environment variables - MUST be set in .env file
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+// Validate environment variables are set
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error(
+    'Missing Supabase environment variables. Please create a .env file with:\n' +
+    'VITE_SUPABASE_URL=your_supabase_url\n' +
+    'VITE_SUPABASE_ANON_KEY=your_anon_key'
+  )
+}
 
 export const supabase = createClient(supabaseUrl, supabaseKey)
 
@@ -9,11 +19,59 @@ export const supabase = createClient(supabaseUrl, supabaseKey)
 export type Database = {
   public: {
     Tables: {
+      trades: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          skill_offered: string
+          skill_wanted: string
+          user_id: string
+          user_display_name: string
+          status: 'Open' | 'Closed' | 'Assigned' | 'Completed'
+          comments: any[] | null
+          location: string | null
+          deadline: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string | null
+          skill_offered: string
+          skill_wanted: string
+          user_id: string
+          user_display_name: string
+          status?: 'Open' | 'Closed' | 'Assigned' | 'Completed'
+          comments?: any[] | null
+          location?: string | null
+          deadline?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string | null
+          skill_offered?: string
+          skill_wanted?: string
+          user_id?: string
+          user_display_name?: string
+          status?: 'Open' | 'Closed' | 'Assigned' | 'Completed'
+          comments?: any[] | null
+          location?: string | null
+          deadline?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
       profiles: {
         Row: {
           id: string
           user_id: string
           name: string
+          username: string | null
           email: string
           bio: string | null
           location: string | null
@@ -31,6 +89,7 @@ export type Database = {
           id?: string
           user_id: string
           name: string
+          username?: string | null
           email: string
           bio?: string | null
           location?: string | null
@@ -48,6 +107,7 @@ export type Database = {
           id?: string
           user_id?: string
           name?: string
+          username?: string | null
           email?: string
           bio?: string | null
           location?: string | null

@@ -43,7 +43,7 @@ export default function SignUp() {
 
     try {
       const result = await signUp(email, password);
-      
+
       if (result.error) {
         setError(result.error);
       } else if (result.success) {
@@ -77,8 +77,8 @@ export default function SignUp() {
                 After verification, you can sign in to your account.
               </AlertDescription>
             </Alert>
-            <Button 
-              onClick={() => navigate("/signin")} 
+            <Button
+              onClick={() => navigate("/signin")}
               className="w-full"
               variant="outline"
             >
@@ -99,7 +99,7 @@ export default function SignUp() {
           </div>
           <CardTitle className="text-2xl">Create Account</CardTitle>
           <CardDescription>
-            Join SkillTrade and start trading your skills
+            Join MeritOne and start trading your skills
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -109,7 +109,7 @@ export default function SignUp() {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">

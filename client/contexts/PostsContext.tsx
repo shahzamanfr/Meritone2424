@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './AuthContext';
 
@@ -44,6 +44,8 @@ export interface Comment {
 interface PostsContextType {
   posts: Post[];
   loading: boolean;
+  hasMore: boolean;
+  loadMorePosts: () => Promise<void>;
   createPost: (postData: any) => Promise<{ error: string | null; success: boolean }>;
   updatePost: (postId: string, updates: any) => Promise<{ error: string | null; success: boolean }>;
   deletePost: (postId: string) => Promise<{ error: string | null; success: boolean }>;
@@ -66,39 +68,45 @@ export const usePosts = () => {
   return context;
 };
 
+const POSTS_PER_PAGE = 15;
+
 export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(0);
   const { user } = useAuth();
 
-  const loadPosts = async () => {
+  const loadPosts = async (reset = false) => {
     try {
       setLoading(true);
-      
-      // First, fetch all posts
+      const currentOffset = reset ? 0 : offset;
+
+      // Fetch posts with pagination
       const { data: rawPosts, error: postsError } = await supabase
         .from('posts')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(currentOffset, currentOffset + POSTS_PER_PAGE - 1);
 
       if (postsError) {
         console.error('Error fetching posts:', postsError);
         return;
       }
 
-      console.log('Raw posts data:', rawPosts);
-      console.log('Number of posts found:', rawPosts?.length || 0);
-
       if (!rawPosts || rawPosts.length === 0) {
-        setPosts([]);
-        setLoading(false);
+        setHasMore(false);
+        if (reset) setPosts([]);
         return;
       }
+
+      // Check if we have more posts
+      setHasMore(rawPosts.length === POSTS_PER_PAGE);
 
       // Get unique user IDs from posts
       const userIds = [...new Set(rawPosts.map(post => post.user_id))];
 
-      // Fetch profiles for all users
+      // Fetch profiles for all users in one query
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('user_id, name, profile_picture, email')
@@ -106,11 +114,7 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);
-        return;
       }
-
-      console.log('Posts with profile pictures:', rawPosts);
-      console.log('Processed posts with user info:', rawPosts);
 
       // Create a map of user_id to profile data
       const profileMap = new Map();
@@ -126,10 +130,12 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       // If user is authenticated, check which posts they've liked
       if (user) {
+        const postIds = postsWithUsers.map(p => p.id);
         const { data: userLikes, error: likesError } = await supabase
           .from('post_likes')
           .select('post_id')
-          .eq('user_id', user.id);
+          .eq('user_id', user.id)
+          .in('post_id', postIds);
 
         if (!likesError && userLikes) {
           const likedPostIds = new Set(userLikes.map(like => like.post_id));
@@ -139,14 +145,25 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       }
 
-      console.log('Setting posts state with', postsWithUsers.length, 'posts');
-      setPosts(postsWithUsers);
+      if (reset) {
+        setPosts(postsWithUsers);
+        setOffset(POSTS_PER_PAGE);
+      } else {
+        setPosts(prev => [...prev, ...postsWithUsers]);
+        setOffset(currentOffset + POSTS_PER_PAGE);
+      }
     } catch (error) {
       console.error('Error in loadPosts:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  const loadMorePosts = useCallback(async () => {
+    if (!loading && hasMore) {
+      await loadPosts(false);
+    }
+  }, [loading, hasMore, offset]);
 
   const createPost = async (postData: any) => {
     try {
@@ -165,8 +182,8 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return { error: error.message, success: false };
       }
 
-      console.log('Post created successfully:', data);
-      await loadPosts(); // Refresh the posts list
+
+      await refreshPosts(); // Refresh to show new post at top
       return { error: null, success: true };
     } catch (error) {
       console.error('Error creating post:', error);
@@ -185,7 +202,7 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return { error: error.message, success: false };
       }
 
-      await loadPosts();
+      await refreshPosts();
       return { error: null, success: true };
     } catch (error) {
       return { error: 'Failed to update post', success: false };
@@ -203,7 +220,8 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return { error: error.message, success: false };
       }
 
-      await loadPosts();
+      // Remove from local state immediately
+      setPosts(prev => prev.filter(p => p.id !== postId));
       return { error: null, success: true };
     } catch (error) {
       return { error: 'Failed to delete post', success: false };
@@ -221,9 +239,9 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
 
       // Update local state immediately for better UX
-      setPosts(prevPosts => 
-        prevPosts.map(post => 
-          post.id === postId 
+      setPosts(prevPosts =>
+        prevPosts.map(post =>
+          post.id === postId
             ? { ...post, isLiked: true, likes_count: post.likes_count + 1 }
             : post
         )
@@ -248,9 +266,9 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
 
       // Update local state immediately for better UX
-      setPosts(prevPosts => 
-        prevPosts.map(post => 
-          post.id === postId 
+      setPosts(prevPosts =>
+        prevPosts.map(post =>
+          post.id === postId
             ? { ...post, isLiked: false, likes_count: Math.max(0, post.likes_count - 1) }
             : post
         )
@@ -270,10 +288,10 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       const { data, error } = await supabase
         .from('post_comments')
-        .insert([{ 
-          post_id: postId, 
-          user_id: user.id, 
-          content: content 
+        .insert([{
+          post_id: postId,
+          user_id: user.id,
+          content: content
         }])
         .select()
         .single();
@@ -283,9 +301,9 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
 
       // Update local state immediately for better UX
-      setPosts(prevPosts => 
-        prevPosts.map(post => 
-          post.id === postId 
+      setPosts(prevPosts =>
+        prevPosts.map(post =>
+          post.id === postId
             ? { ...post, comments_count: post.comments_count + 1 }
             : post
         )
@@ -309,7 +327,7 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
 
       // Refresh posts to update comment counts
-      await loadPosts();
+      await refreshPosts();
       return { error: null, success: true };
     } catch (error) {
       return { error: 'Failed to delete comment', success: false };
@@ -360,16 +378,21 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const refreshPosts = () => {
-    loadPosts();
+    setOffset(0);
+    setHasMore(true);
+    loadPosts(true);
   };
 
+  // Initial load
   useEffect(() => {
-    loadPosts();
+    loadPosts(true);
   }, [user]);
 
   const value: PostsContextType = {
     posts,
     loading,
+    hasMore,
+    loadMorePosts,
     createPost,
     updatePost,
     deletePost,

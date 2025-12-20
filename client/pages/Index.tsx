@@ -129,6 +129,9 @@ export default function Index() {
                 SkillSwap
               </span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-500 drop-shadow-lg">
+                Code movie
+              </span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-500 drop-shadow-lg">
                 WorkTrade
               </span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-500 drop-shadow-lg">
@@ -142,6 +145,9 @@ export default function Index() {
               </span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-500 drop-shadow-lg">
                 SkillSwap
+              </span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-500 drop-shadow-lg">
+                Code movie
               </span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-500 drop-shadow-lg">
                 WorkTrade
@@ -386,7 +392,7 @@ export default function Index() {
                   <span className="text-white font-bold text-sm">ST</span>
                 </div>
                 <span className="text-xl font-semibold text-gray-900">
-                  SkillTrade
+                  MeritOne
                 </span>
               </div>
               <p className="text-gray-600 text-sm leading-relaxed">
@@ -484,7 +490,7 @@ export default function Index() {
           <div className="border-t border-gray-200 mt-12 pt-8">
             <div className="text-center space-y-2">
               <div className="text-gray-600 text-sm">
-                © 2024 SkillTrade. All rights reserved.
+                © 2024 MeritOne. All rights reserved.
               </div>
               <div className="text-gray-600 text-sm">Mohammed Shahzaman</div>
             </div>

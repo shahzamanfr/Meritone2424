@@ -14,6 +14,7 @@ import Skills from "./pages/Skills";
 import Trades from "./pages/Trades";
 import About from "./pages/About";
 import ResumePage from "./pages/Resume";
+import ResumeLandingPage from "./pages/ResumeLanding";
 import EditResumePage from "./pages/EditResume";
 import CreateProfile from "./pages/CreateProfile";
 import SocialFeed from "./pages/SocialFeed";
@@ -21,11 +22,15 @@ import CreatePost from "./pages/CreatePost";
 import Profile from "./pages/Profile";
 import EditProfile from "./pages/EditProfile";
 import Messages from "./pages/Messages";
+
 import Settings from "./pages/Settings";
 import SignUp from "./pages/SignUp";
 import SignIn from "./pages/SignIn";
 import AuthCallback from "./pages/AuthCallback";
 import NotFound from "./pages/NotFound";
+import Followers from "./pages/Followers";
+import Following from "./pages/Following";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient();
 
@@ -35,31 +40,38 @@ const App = () => (
       <ProfileProvider>
         <PostsProvider>
           <NotificationProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/signup" element={<SignUp />} />
-                <Route path="/signin" element={<SignIn />} />
-                <Route path="/auth/callback" element={<AuthCallback />} />
-                <Route path="/skills" element={<Skills />} />
-                <Route path="/trades" element={<Trades />} />
-                {/* About removed from header; route kept if directly visited */}
-                <Route path="/about" element={<About />} />
-                <Route path="/resume" element={<ResumePage />} />
-                <Route path="/resume/edit" element={<EditResumePage />} />
-                <Route path="/create-profile" element={<CreateProfile />} />
-                <Route path="/feed" element={<SocialFeed />} />
-                <Route path="/create-post" element={<CreatePost />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/edit-profile" element={<EditProfile />} />
-                <Route path="/messages" element={<Messages />} />
-                <Route path="/settings" element={<Settings />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
+            <ErrorBoundary>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/signup" element={<SignUp />} />
+                  <Route path="/signin" element={<SignIn />} />
+                  <Route path="/auth/callback" element={<AuthCallback />} />
+                  <Route path="/skills" element={<Skills />} />
+                  <Route path="/trades" element={<Trades />} />
+                  {/* About removed from header; route kept if directly visited */}
+                  <Route path="/about" element={<About />} />
+                  <Route path="/resume" element={<ResumePage />} />
+                  <Route path="/resume/landing" element={<ResumeLandingPage />} />
+                  <Route path="/resume/edit" element={<EditResumePage />} />
+                  <Route path="/create-profile" element={<CreateProfile />} />
+                  <Route path="/feed" element={<SocialFeed />} />
+                  <Route path="/create-post" element={<CreatePost />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/profile/:id" element={<Profile />} />
+                  <Route path="/edit-profile" element={<EditProfile />} />
+                  <Route path="/messages" element={<Messages />} />
+
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/followers/:id" element={<Followers />} />
+                  <Route path="/following/:id" element={<Following />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </ErrorBoundary>
           </NotificationProvider>
         </PostsProvider>
       </ProfileProvider>
