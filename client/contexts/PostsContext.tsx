@@ -82,25 +82,24 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setLoading(true);
       const currentOffset = reset ? 0 : offset;
 
-      // OPTIMIZED: Single query with joins instead of 3 separate queries
+      // Fetch posts with pagination
       const { data: rawPosts, error: postsError } = await supabase
         .from('posts')
-        .select(`
-          *,
-          user:profiles!user_id(user_id, name, profile_picture, email),
-          post_likes!left(user_id)
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .range(currentOffset, currentOffset + POSTS_PER_PAGE - 1);
 
+      console.log('🔍 DEBUG: Fetching posts...', { currentOffset, POSTS_PER_PAGE });
+
       if (postsError) {
-        if (import.meta.env.DEV) {
-          console.error('Error fetching posts:', postsError);
-        }
+        console.error('❌ Error fetching posts:', postsError);
         return;
       }
 
+      console.log('✅ Posts fetched:', rawPosts?.length || 0, 'posts');
+
       if (!rawPosts || rawPosts.length === 0) {
+        console.log('⚠️ No posts found in database');
         setHasMore(false);
         if (reset) setPosts([]);
         return;
@@ -109,20 +108,47 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       // Check if we have more posts
       setHasMore(rawPosts.length === POSTS_PER_PAGE);
 
-      // Process posts with user data and likes
-      const postsWithUsers = rawPosts.map(post => {
-        // Check if current user liked this post
-        const isLiked = user ?
-          post.post_likes?.some((like: any) => like.user_id === user.id) :
-          false;
+      // Get unique user IDs from posts
+      const userIds = [...new Set(rawPosts.map(post => post.user_id))];
 
-        return {
-          ...post,
-          user: post.user || null,
-          isLiked,
-          post_likes: undefined // Remove the raw likes data
-        };
+      // Fetch profiles for all users in one query
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, name, profile_picture, email')
+        .in('user_id', userIds);
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+      }
+
+      // Create a map of user_id to profile data
+      const profileMap = new Map();
+      profiles?.forEach(profile => {
+        profileMap.set(profile.user_id, profile);
       });
+
+      // Combine posts with user data
+      const postsWithUsers = rawPosts.map(post => ({
+        ...post,
+        user: profileMap.get(post.user_id) || null
+      }));
+
+      // If user is authenticated, check which posts they've liked
+      if (user) {
+        const postIds = postsWithUsers.map(p => p.id);
+        const { data: userLikes, error: likesError } = await supabase
+          .from('post_likes')
+          .select('post_id')
+          .eq('user_id', user.id)
+          .in('post_id', postIds);
+
+        if (!likesError && userLikes) {
+          const likedPostIds = new Set(userLikes.map(like => like.post_id));
+          postsWithUsers.forEach(post => {
+            post.isLiked = likedPostIds.has(post.id);
+          });
+        }
+      }
 
       if (reset) {
         setPosts(postsWithUsers);
