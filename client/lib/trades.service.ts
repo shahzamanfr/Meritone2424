@@ -23,10 +23,7 @@ export class TradesService {
     try {
       const { data, error } = await supabase
         .from('trades')
-        .select(`
-          *,
-          profiles:user_id(profile_picture, name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -54,10 +51,7 @@ export class TradesService {
     try {
       const { data, error } = await supabase
         .from('trades')
-        .select(`
-          *,
-          profiles:user_id(profile_picture, name)
-        `)
+        .select('*')
         .eq('id', id)
         .single();
 

@@ -55,17 +55,10 @@ export async function findSmartTrades(userSkills: string[]): Promise<MatchedPost
 
         if (import.meta.env.DEV) console.log(`🔍 Searching for posts matching skills:`, userSkills);
 
-        // Query ALL posts first, then filter in JavaScript for better debugging
+        // Query ALL posts first
         const { data: posts, error } = await supabase
             .from('posts')
-            .select(`
-                *,
-                profiles (
-                    user_id,
-                    name,
-                    profile_picture
-                )
-            `)
+            .select('*')
             .order('created_at', { ascending: false })
             .limit(100);
 
