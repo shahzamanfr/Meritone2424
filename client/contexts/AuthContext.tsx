@@ -60,9 +60,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: 'Please verify your email before signing in' };
       }
 
-      // Mark user online immediately after successful sign-in
+      // Mark user online immediately after successful sign-in (non-blocking)
       if (data.user?.id) {
-        await messagingService.updateUserStatus(data.user.id, true);
+        messagingService.updateUserStatus(data.user.id, true);
       }
 
       return { success: true };
@@ -73,9 +73,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     try {
-      // Mark user offline before signing out
+      // Mark user offline before signing out (non-blocking)
       if (user?.id) {
-        await messagingService.updateUserStatus(user.id, false);
+        messagingService.updateUserStatus(user.id, false);
         messagingService.cleanup();
       }
       await supabase.auth.signOut();
