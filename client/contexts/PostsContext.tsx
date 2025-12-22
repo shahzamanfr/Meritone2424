@@ -82,15 +82,21 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setLoading(true);
       const currentOffset = reset ? 0 : offset;
 
-      // Fetch posts with pagination
+      // OPTIMIZED: Single query with joins instead of 3 separate queries
       const { data: rawPosts, error: postsError } = await supabase
         .from('posts')
-        .select('*')
+        .select(`
+          *,
+          user:profiles!user_id(user_id, name, profile_picture, email),
+          post_likes!left(user_id)
+        `)
         .order('created_at', { ascending: false })
         .range(currentOffset, currentOffset + POSTS_PER_PAGE - 1);
 
       if (postsError) {
-        console.error('Error fetching posts:', postsError);
+        if (import.meta.env.DEV) {
+          console.error('Error fetching posts:', postsError);
+        }
         return;
       }
 
@@ -103,47 +109,20 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       // Check if we have more posts
       setHasMore(rawPosts.length === POSTS_PER_PAGE);
 
-      // Get unique user IDs from posts
-      const userIds = [...new Set(rawPosts.map(post => post.user_id))];
+      // Process posts with user data and likes
+      const postsWithUsers = rawPosts.map(post => {
+        // Check if current user liked this post
+        const isLiked = user ?
+          post.post_likes?.some((like: any) => like.user_id === user.id) :
+          false;
 
-      // Fetch profiles for all users in one query
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('user_id, name, profile_picture, email')
-        .in('user_id', userIds);
-
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
-      }
-
-      // Create a map of user_id to profile data
-      const profileMap = new Map();
-      profiles?.forEach(profile => {
-        profileMap.set(profile.user_id, profile);
+        return {
+          ...post,
+          user: post.user || null,
+          isLiked,
+          post_likes: undefined // Remove the raw likes data
+        };
       });
-
-      // Combine posts with user data
-      const postsWithUsers = rawPosts.map(post => ({
-        ...post,
-        user: profileMap.get(post.user_id) || null
-      }));
-
-      // If user is authenticated, check which posts they've liked
-      if (user) {
-        const postIds = postsWithUsers.map(p => p.id);
-        const { data: userLikes, error: likesError } = await supabase
-          .from('post_likes')
-          .select('post_id')
-          .eq('user_id', user.id)
-          .in('post_id', postIds);
-
-        if (!likesError && userLikes) {
-          const likedPostIds = new Set(userLikes.map(like => like.post_id));
-          postsWithUsers.forEach(post => {
-            post.isLiked = likedPostIds.has(post.id);
-          });
-        }
-      }
 
       if (reset) {
         setPosts(postsWithUsers);
@@ -153,7 +132,9 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setOffset(currentOffset + POSTS_PER_PAGE);
       }
     } catch (error) {
-      console.error('Error in loadPosts:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error in loadPosts:', error);
+      }
     } finally {
       setLoading(false);
     }
@@ -178,7 +159,9 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         .single();
 
       if (error) {
-        console.error('Error creating post:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error creating post:', error);
+        }
         return { error: error.message, success: false };
       }
 
@@ -186,7 +169,9 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await refreshPosts(); // Refresh to show new post at top
       return { error: null, success: true };
     } catch (error) {
-      console.error('Error creating post:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error creating post:', error);
+      }
       return { error: 'Failed to create post', success: false };
     }
   };
@@ -343,7 +328,9 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         .order('created_at', { ascending: true });
 
       if (error) {
-        console.error('Error loading comments:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error loading comments:', error);
+        }
         return [];
       }
 
@@ -356,7 +343,9 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         .in('user_id', userIds);
 
       if (profilesError) {
-        console.error('Error loading comment profiles:', profilesError);
+        if (import.meta.env.DEV) {
+          console.error('Error loading comment profiles:', profilesError);
+        }
         return comments;
       }
 
@@ -368,7 +357,9 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         user: profileMap.get(comment.user_id) || undefined,
       }));
     } catch (error) {
-      console.error('Error loading comments:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error loading comments:', error);
+      }
       return [];
     }
   };

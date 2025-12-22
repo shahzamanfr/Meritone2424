@@ -63,10 +63,14 @@ export async function generateResumeWithAI(input: AIResumeRequest): Promise<AIRe
     try {
       return await callGeminiAPI(apiKey, input);
     } catch (error) {
-      console.log(`API attempt ${attempt} failed:`, error);
+      if (import.meta.env.DEV) {
+        console.log(`API attempt ${attempt} failed:`, error);
+      }
 
       if (attempt === 3) {
-        console.log('All API attempts failed, using fallback generation');
+        if (import.meta.env.DEV) {
+          console.log('All API attempts failed, using fallback generation');
+        }
         return generateFallbackResume(input);
       }
 
@@ -644,7 +648,7 @@ export function removeGeminiApiKey(): void {
 
 export interface ResumeScanIssue {
   category: 'ATS' | 'Content' | 'Keywords' | 'Formatting' | 'Impact';
-  severity: 'high' | 'medium' | 'low';
+  severity: 'critical' | 'high' | 'medium' | 'low';
   issue: string;
   suggestion: string;
   location: string;
@@ -653,7 +657,7 @@ export interface ResumeScanIssue {
 
 export interface ResumeScanResult {
   atsScore: number;
-  overallGrade: 'Excellent' | 'Good' | 'Needs Work' | 'Poor';
+  overallGrade: 'Excellent' | 'Good' | 'Fair' | 'Poor';
   strengths: string[];
   issues: ResumeScanIssue[];
   keywordAnalysis: {
@@ -670,69 +674,127 @@ export interface ResumeScanResult {
  * Analyzes entire resume and provides detailed suggestions
  */
 export async function scanCompleteResume(resume: Partial<Resume>): Promise<ResumeScanResult> {
-  const apiKey = import.meta.env.VITE_GROQ_API_KEY || ""; // Groq API from environment
+  const apiKey = import.meta.env.VITE_GROQ_API_KEY || "";
+
+  // DEBUG: Log API key status
+  console.log('🔍 ATS Scanner Debug:');
+  console.log('API Key exists:', !!apiKey);
+  console.log('API Key length:', apiKey.length);
+  if (!apiKey) {
+    console.warn('⚠️ NO GROK API KEY - Using fallback scoring (hardcoded)');
+  } else {
+    console.log('✅ Grok API key found - Will use AI scoring');
+  }
 
   // Build comprehensive resume text for analysis
   const resumeText = buildResumeText(resume);
 
-  const prompt = `You are a senior ATS expert and recruiter at Fortune 500 companies. Score based on REAL ATS systems (Taleo, Workday, Greenhouse).
+  const prompt = `You are a STRICT ATS system used by Fortune 500 companies. Your job is to REJECT weak resumes and ONLY pass strong ones.
 
 RESUME TO ANALYZE:
 ${resumeText}
 
-INDUSTRY-STANDARD ATS SCORING (0-100):
+CRITICAL SCORING RULES - BE HARSH AND REALISTIC:
 
-CRITICAL (60pts):
-• Contact Info (10pts): Name, phone, email, location, LinkedIn
-• Keywords (25pts): Industry keywords, technical skills, certifications
-• Quantified Results (15pts): Metrics (%, $, numbers), measurable impact
-• Experience Quality (10pts): Clear titles, dates (MM/YYYY), no gaps >6mo
+YOU MUST DEDUCT POINTS FOR EVERY MISSING OR WEAK ELEMENT.
 
-IMPORTANT (30pts):
-• Summary (8pts): 2-4 sentences, 50-150 words, value proposition
-• Action Verbs (7pts): Led/Developed/Implemented (not "worked on")
-• Format (8pts): ATS-friendly, consistent, proper headers
-• Education (7pts): Degree, school, date, certifications
+CONTACT INFORMATION (10 points) - ALL REQUIRED:
+- Missing name: FAIL (0 points for section)
+- Missing email: -3pts
+- Missing phone: -3pts  
+- Missing location: -2pts
+- No LinkedIn/portfolio: -2pts
 
-BONUS (10pts):
-• Extra Sections (5pts): Projects, awards, volunteer, languages
-• Polish (5pts): No typos, 1-2 pages, industry-tailored
+PROFESSIONAL SUMMARY (15 points) - MUST BE STRONG:
+- No summary: 0 points
+- Summary < 30 words: 3 points (too short)
+- Summary 30-80 words, generic: 8 points (weak)
+- Summary 80-150 words, specific value prop: 15 points (good)
+- Buzzwords without substance: -5pts
 
-RED FLAGS (deductions):
-- Missing contact: -20 | No metrics: -15 | Weak verbs: -10
-- Bad format: -10 | Buzzwords: -5 | Typos: -5 each
-- >2 pages: -10 | Unexplained gaps: -5
+WORK EXPERIENCE (30 points) - MOST CRITICAL:
+- No experience: 0 points (FAIL)
+- 1 job, no details: 5 points
+- Each job WITHOUT quantified metrics: -8pts per job
+- Weak verbs ("responsible for", "worked on"): -5pts
+- Missing dates or company names: -5pts per job
+- Less than 3 bullet points per job: -3pts per job
+- No numbers, %, or $ anywhere: -15pts total
 
-SCORE RANGES:
-90-100: Excellent (Top 10%) | 80-89: Very Good (Strong)
-70-79: Good (Competitive) | 60-69: Fair (Needs work)
-50-59: Needs Work | <50: Poor (Won't pass ATS)
+SKILLS & KEYWORDS (20 points) - MUST BE RELEVANT:
+- No skills section: 0 points
+- Less than 6 skills: 5 points (insufficient)
+- 6-10 generic skills: 10 points
+- 10+ specific, relevant skills: 20 points
+- Outdated technologies: -5pts
+- Skills don't match experience: -8pts
+
+EDUCATION (10 points):
+- No education: 0 points
+- School name only: 3 points
+- Degree + school: 7 points
+- Degree + school + date + GPA/honors: 10 points
+
+PROJECTS (8 points):
+- No projects: 0 points
+- 1 project, minimal detail: 3 points
+- 2+ projects with tech stack: 8 points
+
+CERTIFICATIONS (5 points):
+- No certs: 0 points
+- 1-2 relevant certs: 5 points
+
+ACHIEVEMENTS (2 points):
+- Specific, quantified achievements: 2 points
+- Generic statements: 0 points
+
+TOTAL: 100 points possible
+
+REALISTIC GRADING (BE STRICT):
+- 80-100: Excellent (Top 5% - ready for FAANG)
+- 65-79: Good (Top 20% - competitive)
+- 45-64: Fair (Needs significant work)
+- 25-44: Poor (Major gaps, likely rejected)
+- 0-24: Fail (Not ready for applications)
+
+IMPORTANT RULES:
+1. Empty or minimal resumes should score 15-35
+2. Average resumes should score 45-60
+3. Only truly strong resumes score 70+
+4. Be CRITICAL - find every flaw
+5. Deduct points aggressively for missing content
+6. Don't be nice - be REALISTIC
 
 Return ONLY valid JSON:
 {
-  "atsScore": <0-100 based on REAL criteria above>,
-  "overallGrade": "<Excellent|Good|Needs Work|Poor>",
-  "strengths": ["specific strength", ...],
+  "atsScore": <0-100, BE HARSH>,
+  "overallGrade": "<Excellent|Good|Fair|Poor|Fail>",
+  "strengths": ["only list REAL strengths"],
   "issues": [{
     "category": "<ATS|Content|Keywords|Formatting|Impact>",
-    "severity": "<high|medium|low>",
-    "issue": "Specific problem",
-    "suggestion": "Actionable fix with example",
+    "severity": "<critical|high|medium|low>",
+    "issue": "Specific problem found",
+    "suggestion": "Exact fix needed",
     "location": "Section",
-    "details": "Why this matters for ATS"
+    "details": "Why this will get you rejected"
   }],
   "keywordAnalysis": {
-    "present": ["keyword1", ...],
-    "missing": ["keyword2", ...],
-    "suggestions": ["Add X to Y section", ...]
+    "present": ["actual keywords found"],
+    "missing": ["critical missing keywords"],
+    "suggestions": ["specific keywords to add"]
   },
-  "recommendations": ["Top priority 1", ...],
-  "summary": "Professional assessment based on real ATS standards"
+  "recommendations": [
+    "PRIORITY 1: Most critical fix",
+    "PRIORITY 2: Second most critical",
+    "PRIORITY 3: Third most critical"
+  ],
+  "summary": "Brutally honest 2-3 sentence assessment"
 }
 
-Be accurate and specific. Return ONLY JSON.`;
+BE STRICT. BE CRITICAL. BE REALISTIC. This is what real ATS systems do.`;
 
   try {
+    console.log('📡 Calling Grok API for ATS analysis...');
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -743,41 +805,53 @@ Be accurate and specific. Return ONLY JSON.`;
         model: "llama-3.3-70b-versatile",
         messages: [{
           role: "system",
-          content: "You are a senior ATS expert. Score resumes using real Fortune 500 ATS standards. Be accurate and professional."
+          content: "You are a STRICT ATS system. Reject weak resumes. Be critical and harsh. Only strong resumes should score above 70. Find every flaw."
         }, {
           role: "user",
           content: prompt
         }],
-        temperature: 0.2,
-        max_tokens: 2500
+        temperature: 0.3,
+        max_tokens: 4000 // Increased from 2500 for more detailed feedback
       })
     });
 
     if (!response.ok) {
-      console.error('Groq API error:', response.status);
+      const errorText = await response.text();
+      console.error('❌ Groq API error:', response.status, errorText);
+      console.warn('⚠️ Falling back to hardcoded scoring');
       return generateFallbackScan(resume);
     }
 
     const data = await response.json();
+    console.log('✅ Grok API response received');
     const resultText = data.choices?.[0]?.message?.content?.trim();
 
     if (!resultText) {
+      console.error('❌ No content in API response');
+      console.warn('⚠️ Falling back to hardcoded scoring');
       return generateFallbackScan(resume);
     }
+
+    console.log('📝 AI Response length:', resultText.length, 'characters');
 
     // Extract JSON from response
     const jsonMatch = resultText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error('No JSON found in response');
+      console.error('❌ No JSON found in AI response');
+      console.log('Response preview:', resultText.substring(0, 200));
+      console.warn('⚠️ Falling back to hardcoded scoring');
       return generateFallbackScan(resume);
     }
 
     const result = JSON.parse(jsonMatch[0]);
+    console.log('✅ AI Scoring complete - Score:', result.atsScore);
+    console.log('📊 Issues found:', result.issues?.length || 0);
+    console.log('💪 Strengths found:', result.strengths?.length || 0);
 
     // Validate and return
     return {
       atsScore: result.atsScore || 0,
-      overallGrade: result.overallGrade || 'Needs Work',
+      overallGrade: result.overallGrade || 'Poor',
       strengths: result.strengths || [],
       issues: result.issues || [],
       keywordAnalysis: result.keywordAnalysis || { present: [], missing: [], suggestions: [] },
@@ -786,7 +860,8 @@ Be accurate and specific. Return ONLY JSON.`;
     };
 
   } catch (error) {
-    console.error('Error scanning resume:', error);
+    console.error('❌ Error scanning resume:', error);
+    console.warn('⚠️ Falling back to hardcoded scoring');
     return generateFallbackScan(resume);
   }
 }
@@ -877,72 +952,247 @@ function buildResumeText(resume: Partial<Resume>): string {
 function generateFallbackScan(resume: Partial<Resume>): ResumeScanResult {
   const issues: ResumeScanIssue[] = [];
   const strengths: string[] = [];
-  let score = 50; // Base score
+  let score = 0; // Start at 0 - must EARN every point
 
-  // Check contact info
-  if (resume.full_name) score += 5;
-  if (resume.email) score += 5;
-  if (resume.phone) score += 5;
-  if (resume.location) score += 5;
-
-  // Check summary
-  if (resume.summary && resume.summary.length > 50) {
-    score += 10;
-    strengths.push('Professional summary is present');
+  // Contact Info (10 points) - ALL REQUIRED
+  let contactScore = 0;
+  if (!resume.full_name) {
+    issues.push({
+      category: 'ATS',
+      severity: 'critical',
+      issue: 'Missing name',
+      suggestion: 'Add your full name at the top of your resume',
+      location: 'Header'
+    });
   } else {
+    contactScore += 3;
+  }
+
+  if (!resume.email) {
+    issues.push({
+      category: 'ATS',
+      severity: 'critical',
+      issue: 'Missing email',
+      suggestion: 'Add a professional email address',
+      location: 'Header'
+    });
+  } else {
+    contactScore += 3;
+  }
+
+  if (!resume.phone) {
+    issues.push({
+      category: 'ATS',
+      severity: 'high',
+      issue: 'Missing phone number',
+      suggestion: 'Add your phone number',
+      location: 'Header'
+    });
+  } else {
+    contactScore += 2;
+  }
+
+  if (!resume.location) {
+    issues.push({
+      category: 'ATS',
+      severity: 'medium',
+      issue: 'Missing location',
+      suggestion: 'Add your city and state',
+      location: 'Header'
+    });
+  } else {
+    contactScore += 2;
+  }
+
+  score += contactScore;
+  if (contactScore >= 8) {
+    strengths.push('Complete contact information');
+  }
+
+  // Professional Summary (15 points) - MUST BE STRONG
+  if (!resume.summary || resume.summary.length < 20) {
+    issues.push({
+      category: 'Content',
+      severity: 'critical',
+      issue: 'Missing or extremely weak professional summary',
+      suggestion: 'Add a 2-4 sentence summary highlighting your experience and key skills',
+      location: 'Summary'
+    });
+  } else if (resume.summary.length < 80) {
+    score += 5;
     issues.push({
       category: 'Content',
       severity: 'high',
-      issue: 'Missing or weak professional summary',
-      suggestion: 'Add a compelling 2-3 sentence summary highlighting your key strengths',
+      issue: 'Summary too brief',
+      suggestion: 'Expand to 80-150 words with specific value proposition',
       location: 'Summary'
     });
+  } else {
+    score += 15;
+    strengths.push('Strong professional summary');
   }
 
-  // Check experience
-  if (resume.experience && resume.experience.length > 0) {
-    score += 10;
-    strengths.push(`${resume.experience.length} work experience entries`);
+  // Work Experience (30 points) - MOST CRITICAL
+  if (!resume.experience || resume.experience.length === 0) {
+    issues.push({
+      category: 'Content',
+      severity: 'critical',
+      issue: 'NO WORK EXPERIENCE - AUTOMATIC REJECTION',
+      suggestion: 'Add your work history with job titles, companies, dates, and achievements',
+      location: 'Experience'
+    });
+  } else {
+    let expScore = 5; // Base for having experience
 
-    // Check for quantification
+    // Check for quantified metrics
     const hasMetrics = resume.experience.some(exp =>
-      exp.bullets?.some(bullet => /\d+%|\$\d+|\d+ (users|customers|projects)/.test(bullet))
+      exp.bullets?.some(bullet => /\d+%|\$\d+|\d+\s*(users|customers|projects|hours|team|revenue|sales)/.test(bullet))
     );
 
-    if (hasMetrics) {
-      score += 10;
-      strengths.push('Quantified achievements present');
-    } else {
+    if (!hasMetrics) {
       issues.push({
         category: 'Impact',
-        severity: 'high',
-        issue: 'Missing quantified achievements',
-        suggestion: 'Add specific metrics, percentages, or numbers to show impact (e.g., "Improved performance by 40%")',
+        severity: 'critical',
+        issue: 'ZERO quantified achievements - resume will be rejected',
+        suggestion: 'Add numbers: "Increased sales by 40%" or "Managed team of 8"',
         location: 'Experience'
+      });
+      expScore -= 10; // HARSH penalty
+    } else {
+      expScore += 12;
+      strengths.push('Quantified achievements present');
+    }
+
+    // Check for action verbs
+    const hasActionVerbs = resume.experience.some(exp =>
+      exp.bullets?.some(bullet => /^(Led|Developed|Implemented|Managed|Created|Built|Designed|Improved|Increased|Reduced)/i.test(bullet))
+    );
+
+    if (!hasActionVerbs) {
+      issues.push({
+        category: 'Content',
+        severity: 'high',
+        issue: 'Weak action verbs - sounds passive',
+        suggestion: 'Start every bullet with: Led, Developed, Implemented, Managed, Created',
+        location: 'Experience'
+      });
+    } else {
+      expScore += 8;
+      strengths.push('Strong action verbs');
+    }
+
+    // Check bullet count
+    const avgBullets = resume.experience.reduce((sum, exp) => sum + (exp.bullets?.length || 0), 0) / resume.experience.length;
+    if (avgBullets < 3) {
+      issues.push({
+        category: 'Content',
+        severity: 'high',
+        issue: 'Too few bullet points per job',
+        suggestion: 'Add 3-5 bullet points for each position',
+        location: 'Experience'
+      });
+      expScore -= 5;
+    } else {
+      expScore += 5;
+    }
+
+    score += Math.max(0, expScore); // Can't go negative
+  }
+
+  // Skills & Keywords (20 points) - MUST BE RELEVANT
+  if (!resume.technical_skills || resume.technical_skills.length === 0) {
+    issues.push({
+      category: 'Keywords',
+      severity: 'critical',
+      issue: 'NO SKILLS SECTION - ATS will reject',
+      suggestion: 'Add a technical skills section with 10+ relevant technologies',
+      location: 'Skills'
+    });
+  } else {
+    const totalSkills = resume.technical_skills.reduce((sum, s) => sum + s.items.length, 0);
+    if (totalSkills < 6) {
+      score += 5;
+      issues.push({
+        category: 'Keywords',
+        severity: 'critical',
+        issue: 'Insufficient skills - only ' + totalSkills,
+        suggestion: 'Add at least 10 relevant technical skills',
+        location: 'Skills'
+      });
+    } else if (totalSkills < 10) {
+      score += 12;
+      issues.push({
+        category: 'Keywords',
+        severity: 'medium',
+        issue: 'Limited skills listed',
+        suggestion: 'Add more relevant technologies to reach 10-15 skills',
+        location: 'Skills'
+      });
+    } else {
+      score += 20;
+      strengths.push(`${totalSkills} technical skills listed`);
+    }
+  }
+
+  // Education (10 points)
+  if (!resume.education || resume.education.length === 0) {
+    issues.push({
+      category: 'Content',
+      severity: 'high',
+      issue: 'Missing education section',
+      suggestion: 'Add your educational background',
+      location: 'Education'
+    });
+  } else {
+    const hasComplete = resume.education.some(edu => edu.degree && edu.school && edu.duration);
+    if (hasComplete) {
+      score += 10;
+      strengths.push('Complete education details');
+    } else {
+      score += 5;
+      issues.push({
+        category: 'Content',
+        severity: 'medium',
+        issue: 'Incomplete education details',
+        suggestion: 'Add degree, school, and graduation date',
+        location: 'Education'
       });
     }
   }
 
-  // Check skills
-  if (resume.technical_skills && resume.technical_skills.length > 0) {
-    score += 10;
-    const totalSkills = resume.technical_skills.reduce((sum, s) => sum + s.items.length, 0);
-    strengths.push(`${totalSkills} technical skills listed`);
-  } else {
+  // Projects (8 points)
+  if (!resume.projects || resume.projects.length === 0) {
     issues.push({
-      category: 'Keywords',
+      category: 'Content',
       severity: 'high',
-      issue: 'No technical skills section',
-      suggestion: 'Add a technical skills section with relevant technologies and tools',
-      location: 'Skills'
+      issue: 'No projects section',
+      suggestion: 'Add 2-3 projects with technologies used',
+      location: 'Projects'
     });
+  } else if (resume.projects.length >= 2) {
+    score += 8;
+    strengths.push(`${resume.projects.length} projects listed`);
+  } else {
+    score += 3;
   }
 
-  // Determine grade
-  let grade: 'Excellent' | 'Good' | 'Needs Work' | 'Poor';
-  if (score >= 85) grade = 'Excellent';
-  else if (score >= 70) grade = 'Good';
-  else if (score >= 50) grade = 'Needs Work';
+  // Certifications (5 points)
+  if (resume.certifications && resume.certifications.length > 0) {
+    score += 5;
+    strengths.push(`${resume.certifications.length} certification(s)`);
+  }
+
+  // Achievements (2 points)
+  if (resume.achievements && resume.achievements.length > 0) {
+    score += 2;
+    strengths.push('Achievements section present');
+  }
+
+  // Determine grade - BE STRICT
+  let grade: 'Excellent' | 'Good' | 'Fair' | 'Poor';
+  if (score >= 80) grade = 'Excellent';
+  else if (score >= 65) grade = 'Good';
+  else if (score >= 45) grade = 'Fair';
   else grade = 'Poor';
 
   return {

@@ -128,12 +128,16 @@ export async function findSmartTrades(userSkills: string[]): Promise<MatchedPost
             .slice(0, 10); // Return top 10 matches
 
         if (import.meta.env.DEV) {
-            console.log(`✅ Found ${matches.length} smart trade matches!`);
+            if (import.meta.env.DEV) {
+                console.log(`✅ Found ${matches.length} smart trade matches!`);
+            }
             if (matches.length === 0) {
-                console.log('💡 Debug info:');
-                console.log('- Your skills:', userSkills);
-                console.log('- Posts with skills_needed:', posts.filter((p: any) => p.skills_needed?.length > 0).length);
-                console.log('- Sample post skills_needed:', posts.find((p: any) => p.skills_needed?.length > 0)?.skills_needed);
+                if (import.meta.env.DEV) {
+                    console.log('💡 Debug info:');
+                    console.log('- Your skills:', userSkills);
+                    console.log('- Posts with skills_needed:', posts.filter((p: any) => p.skills_needed?.length > 0).length);
+                    console.log('- Sample post skills_needed:', posts.find((p: any) => p.skills_needed?.length > 0)?.skills_needed);
+                }
             }
         }
 

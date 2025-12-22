@@ -125,7 +125,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       console.log('Public URL:', publicUrl);
 
       // Ensure the URL is complete and correct
-      const fullUrl = publicUrl || `https://mphkcuxbsggnbtvzemxf.supabase.co/storage/v1/object/public/avatars/${filePath}`;
+      const fullUrl = publicUrl || `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${filePath}`;
       console.log('Full URL:', fullUrl);
 
       return { url: fullUrl };

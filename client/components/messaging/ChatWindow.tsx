@@ -13,7 +13,7 @@ type Props = {
 export const ChatWindow: React.FC<Props> = ({ currentUserId, otherProfile, messages, typingUsers = new Set() }) => {
   const endRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  
+
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
@@ -22,7 +22,7 @@ export const ChatWindow: React.FC<Props> = ({ currentUserId, otherProfile, messa
     const date = new Date(dateString);
     const now = new Date();
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-    
+
     if (diffInHours < 24) {
       return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     } else if (diffInHours < 48) {
@@ -35,7 +35,7 @@ export const ChatWindow: React.FC<Props> = ({ currentUserId, otherProfile, messa
   const groupMessagesByDate = (messages: Message[]) => {
     const groups: { date: string; messages: Message[] }[] = [];
     let currentDate = "";
-    
+
     messages.forEach((message) => {
       const messageDate = new Date(message.created_at).toDateString();
       if (messageDate !== currentDate) {
@@ -45,7 +45,7 @@ export const ChatWindow: React.FC<Props> = ({ currentUserId, otherProfile, messa
         groups[groups.length - 1].messages.push(message);
       }
     });
-    
+
     return groups;
   };
 
@@ -75,16 +75,16 @@ export const ChatWindow: React.FC<Props> = ({ currentUserId, otherProfile, messa
               <div className="flex items-center justify-center mb-4">
                 <div className="bg-white px-3 py-1 rounded-full shadow-sm border">
                   <span className="text-xs font-medium text-gray-600">
-                    {new Date(group.date).toLocaleDateString([], { 
-                      weekday: 'long', 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
+                    {new Date(group.date).toLocaleDateString([], {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
                     })}
                   </span>
                 </div>
               </div>
-              
+
               {/* Messages */}
               <div className="space-y-2">
                 {group.messages.map((message, index) => {
@@ -93,7 +93,7 @@ export const ChatWindow: React.FC<Props> = ({ currentUserId, otherProfile, messa
                   const nextMessage = index < group.messages.length - 1 ? group.messages[index + 1] : null;
                   const isFirstInGroup = !prevMessage || prevMessage.sender_id !== message.sender_id;
                   const isLastInGroup = !nextMessage || nextMessage.sender_id !== message.sender_id;
-                  
+
                   return (
                     <div key={message.id} className={cn("flex items-end space-x-2", isOwn ? "justify-end" : "justify-start")}>
                       {!isOwn && (
@@ -107,7 +107,7 @@ export const ChatWindow: React.FC<Props> = ({ currentUserId, otherProfile, messa
                           )}
                         </div>
                       )}
-                      
+
                       <div className={cn("max-w-xs sm:max-w-md lg:max-w-lg", isOwn ? "order-1" : "order-2")}>
                         <div
                           className={cn(
@@ -118,37 +118,46 @@ export const ChatWindow: React.FC<Props> = ({ currentUserId, otherProfile, messa
                             isFirstInGroup && isLastInGroup
                               ? "rounded-2xl"
                               : isFirstInGroup
-                              ? isOwn
-                                ? "rounded-2xl rounded-br-md"
-                                : "rounded-2xl rounded-bl-md"
-                              : isLastInGroup
-                              ? isOwn
-                                ? "rounded-2xl rounded-tr-md"
-                                : "rounded-2xl rounded-tl-md"
-                              : isOwn
-                              ? "rounded-r-2xl rounded-l-md"
-                              : "rounded-l-2xl rounded-r-md"
+                                ? isOwn
+                                  ? "rounded-2xl rounded-br-md"
+                                  : "rounded-2xl rounded-bl-md"
+                                : isLastInGroup
+                                  ? isOwn
+                                    ? "rounded-2xl rounded-tr-md"
+                                    : "rounded-2xl rounded-tl-md"
+                                  : isOwn
+                                    ? "rounded-r-2xl rounded-l-md"
+                                    : "rounded-l-2xl rounded-r-md"
                           )}
                         >
                           <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                             {message.content}
                           </p>
                         </div>
-                        
+
                         {isLastInGroup && (
                           <div className={cn("flex items-center mt-1 space-x-1", isOwn ? "justify-end" : "justify-start")}>
                             <span className="text-xs text-gray-500">
                               {formatTime(message.created_at)}
                             </span>
                             {isOwn && (
-                              <div className="text-gray-400">
-                                <CheckCheck className="w-3 h-3" />
+                              <div className={cn(
+                                "flex items-center",
+                                message.read_at ? "text-blue-500" : "text-gray-400"
+                              )}>
+                                {message.read_at ? (
+                                  <CheckCheck className="w-3.5 h-3.5" />
+                                ) : message.status === 'delivered' ? (
+                                  <CheckCheck className="w-3.5 h-3.5" />
+                                ) : (
+                                  <Check className="w-3.5 h-3.5" />
+                                )}
                               </div>
                             )}
                           </div>
                         )}
                       </div>
-                      
+
                       {isOwn && <div className="w-8 h-8 flex-shrink-0" />}
                     </div>
                   );
@@ -157,7 +166,7 @@ export const ChatWindow: React.FC<Props> = ({ currentUserId, otherProfile, messa
             </div>
           ))
         )}
-        
+
         {/* Typing Indicator */}
         {typingUsers.has(otherProfile?.user_id) && (
           <div className="flex justify-start px-4 pb-4">
@@ -170,11 +179,10 @@ export const ChatWindow: React.FC<Props> = ({ currentUserId, otherProfile, messa
             </div>
           </div>
         )}
-        
+
         <div ref={endRef} />
       </div>
     </div>
   );
 };
-
 
