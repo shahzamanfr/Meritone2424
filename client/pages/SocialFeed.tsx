@@ -157,6 +157,7 @@ const SocialFeed: React.FC = () => {
         <img
           src={mediaUrl}
           alt={`Post media ${index + 1}`}
+          loading="lazy"
           className="w-full max-h-96 object-cover cursor-pointer hover:opacity-95 transition-opacity"
           onClick={() => window.open(mediaUrl, '_blank')}
         />
@@ -252,6 +253,7 @@ const SocialFeed: React.FC = () => {
                 <img
                   src={currentUserProfile?.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUserProfile?.name || 'S')}&background=0D8ABC&color=fff`}
                   alt="Profile"
+                  loading="lazy"
                   className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-gray-200"
                 />
                 <Button
@@ -403,6 +405,7 @@ const SocialFeed: React.FC = () => {
                                 post.user?.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.user?.name || 'A')}&background=random`
                               }
                               alt={post.user?.name || "User"}
+                              loading="lazy"
                               className="w-14 h-14 rounded-full object-cover flex-shrink-0 cursor-pointer hover:ring-4 hover:ring-green-100 transition-all"
                               onClick={() => navigate(`/profile/${post.user_id}`)}
                               onError={(e) => {

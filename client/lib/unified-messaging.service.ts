@@ -258,7 +258,7 @@ class UnifiedMessagingService {
     }
   }
 
-  // Send typing indicator
+  // Send typing indicator with auto-clear timeout
   async sendTypingIndicator(userId: string, targetUserId: string, isTyping: boolean): Promise<void> {
     try {
       await supabase
@@ -266,10 +266,25 @@ class UnifiedMessagingService {
         .upsert({
           user_id: userId,
           target_user_id: targetUserId,
-          is_typing: isTyping
+          is_typing: isTyping,
+          updated_at: new Date().toISOString()
         });
+
+      // Auto-clear typing indicator after 3 seconds
+      if (isTyping) {
+        setTimeout(async () => {
+          await supabase
+            .from('typing_indicators')
+            .update({ is_typing: false })
+            .eq('user_id', userId)
+            .eq('target_user_id', targetUserId);
+        }, 3000);
+      }
     } catch (error) {
-      console.error('Error sending typing indicator:', error);
+      // Silently fail - typing indicators are non-critical
+      if (import.meta.env.DEV) {
+        console.error('Error sending typing indicator:', error);
+      }
     }
   }
 
@@ -366,29 +381,44 @@ class UnifiedMessagingService {
       return () => { };
     }
 
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'typing_indicators',
-          filter: `target_user_id=eq.${userId}`
-        },
-        (payload) => {
-          const typing = payload.new as any;
-          onTyping(typing.user_id, typing.is_typing);
-        }
-      )
-      .subscribe();
+    try {
+      const channel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'typing_indicators',
+            filter: `target_user_id=eq.${userId}`
+          },
+          (payload) => {
+            try {
+              const typing = payload.new as any;
+              if (typing && typing.user_id && typeof typing.is_typing === 'boolean') {
+                onTyping(typing.user_id, typing.is_typing);
+              }
+            } catch (error) {
+              if (import.meta.env.DEV) {
+                console.error('Error processing typing indicator:', error);
+              }
+            }
+          }
+        )
+        .subscribe();
 
-    this.channels.set(channelName, channel);
+      this.channels.set(channelName, channel);
 
-    return () => {
-      supabase.removeChannel(channel);
-      this.channels.delete(channelName);
-    };
+      return () => {
+        supabase.removeChannel(channel);
+        this.channels.delete(channelName);
+      };
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error subscribing to typing indicators:', error);
+      }
+      return () => { };
+    }
   }
 
   // Get last read time for a conversation
