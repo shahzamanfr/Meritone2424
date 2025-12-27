@@ -1,12 +1,13 @@
 {
-    "version": 2,
+    "buildCommand": "npm run build:client",
+    "outputDirectory": "dist/spa",
     "rewrites": [
         {
-            "source": "/api/(.*)",
-            "destination": "/api/index.mjs"
+            "source": "/api/:path*",
+            "destination": "/api/index"
         },
         {
-            "source": "/(.*)",
+            "source": "/:path*",
             "destination": "/index.html"
         }
     ]
