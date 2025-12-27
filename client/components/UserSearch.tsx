@@ -145,7 +145,7 @@ export const UserSearch: React.FC<UserSearchProps> = ({ onUserSelect, className 
             className="flex items-center space-x-3 p-3 bg-white rounded-lg border border-gray-200 hover:shadow-sm transition-shadow"
           >
             <img
-              src={userResult.profile_picture || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"}
+              src={userResult.profile_picture || ""}
               alt={userResult.name}
               className="w-10 h-10 rounded-full object-cover"
             />

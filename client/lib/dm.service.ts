@@ -121,7 +121,7 @@ export async function listConversations(currentUserId: string, limit = 20, offse
           .neq("sender_id", currentUserId)
           .gt("created_at", lastRead || "1970-01-01");
         unread = count || 0;
-      } catch {}
+      } catch { }
       previews.push({
         conversation_id: c.id,
         other_user: {

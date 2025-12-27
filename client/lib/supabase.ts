@@ -66,6 +66,38 @@ export type Database = {
           updated_at?: string
         }
       }
+      trade_comments: {
+        Row: {
+          id: string
+          trade_id: string
+          user_id: string
+          content: string
+          user_display_name: string
+          user_profile_picture: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          trade_id: string
+          user_id: string
+          content: string
+          user_display_name: string
+          user_profile_picture?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          trade_id?: string
+          user_id?: string
+          content?: string
+          user_display_name?: string
+          user_profile_picture?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
       profiles: {
         Row: {
           id: string

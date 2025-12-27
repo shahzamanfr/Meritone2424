@@ -1,16 +1,17 @@
 import React from "react";
 import { MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const FloatingMessageButton: React.FC = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   const handleClick = () => {
-    const isAuth = localStorage.getItem("isAuthenticated");
-    if (isAuth === "true") {
+    if (isAuthenticated) {
       navigate("/messages");
     } else {
-      navigate("/create-profile");
+      navigate("/signin");
     }
   };
 

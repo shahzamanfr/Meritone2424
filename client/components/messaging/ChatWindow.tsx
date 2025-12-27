@@ -7,16 +7,32 @@ type Props = {
   currentUserId: string;
   otherProfile: any;
   messages: Message[];
-  typingUsers?: Set<string>;
 };
 
-export const ChatWindow: React.FC<Props> = ({ currentUserId, otherProfile, messages, typingUsers = new Set() }) => {
-  const endRef = useRef<HTMLDivElement>(null);
+export const ChatWindow: React.FC<Props> = ({ currentUserId, otherProfile, messages }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const isNearBottom = useRef(true);
+
+  const scrollToBottom = (behavior: ScrollBehavior = "auto") => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  };
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
+    const lastMessage = messages[messages.length - 1];
+    const sentByMe = lastMessage?.sender_id === currentUserId;
+
+    if (isNearBottom.current || sentByMe) {
+      scrollToBottom(sentByMe ? "smooth" : "auto");
+    }
+  }, [messages.length, currentUserId]);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    const distanceToBottom = scrollHeight - scrollTop - clientHeight;
+    isNearBottom.current = distanceToBottom < 100;
+  };
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -52,15 +68,19 @@ export const ChatWindow: React.FC<Props> = ({ currentUserId, otherProfile, messa
   const messageGroups = groupMessagesByDate(messages);
 
   return (
-    <div className="flex-1 flex flex-col bg-gray-50">
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6">
+    <div className="flex-1 min-h-0 flex flex-col bg-gray-50 relative">
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto px-4 py-6 scroll-smooth"
+      >
         {messageGroups.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-4">
+            <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-4 border border-green-100">
               <img
-                src={otherProfile?.profile_picture || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"}
+                src={otherProfile?.profile_picture ? `${otherProfile.profile_picture}?t=${Date.now()}` : ""}
                 alt={otherProfile?.name || "User"}
-                className="w-12 h-12 rounded-full object-cover"
+                className="w-12 h-12 rounded-full object-cover shadow-sm"
               />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -73,12 +93,11 @@ export const ChatWindow: React.FC<Props> = ({ currentUserId, otherProfile, messa
             <div key={groupIndex} className="mb-6">
               {/* Date Separator */}
               <div className="flex items-center justify-center mb-4">
-                <div className="bg-white px-3 py-1 rounded-full shadow-sm border">
-                  <span className="text-xs font-medium text-gray-600">
+                <div className="bg-white/80 backdrop-blur-sm px-4 py-1.5 rounded-full shadow-sm border border-gray-200/50">
+                  <span className="text-[11px] uppercase tracking-wider font-bold text-gray-500">
                     {new Date(group.date).toLocaleDateString([], {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
+                      weekday: 'short',
+                      month: 'short',
                       day: 'numeric'
                     })}
                   </span>
@@ -86,7 +105,7 @@ export const ChatWindow: React.FC<Props> = ({ currentUserId, otherProfile, messa
               </div>
 
               {/* Messages */}
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {group.messages.map((message, index) => {
                   const isOwn = message.sender_id === currentUserId;
                   const prevMessage = index > 0 ? group.messages[index - 1] : null;
@@ -97,53 +116,53 @@ export const ChatWindow: React.FC<Props> = ({ currentUserId, otherProfile, messa
                   return (
                     <div key={message.id} className={cn("flex items-end space-x-2", isOwn ? "justify-end" : "justify-start")}>
                       {!isOwn && (
-                        <div className="w-8 h-8 flex-shrink-0">
+                        <div className="w-8 h-8 flex-shrink-0 mb-5">
                           {isLastInGroup && (
                             <img
-                              src={otherProfile?.profile_picture || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"}
+                              src={otherProfile?.profile_picture ? `${otherProfile.profile_picture}?t=${Date.now()}` : ""}
                               alt={otherProfile?.name || "User"}
-                              className="w-8 h-8 rounded-full object-cover"
+                              className="w-8 h-8 rounded-full object-cover shadow-sm ring-1 ring-gray-200"
                             />
                           )}
                         </div>
                       )}
 
-                      <div className={cn("max-w-xs sm:max-w-md lg:max-w-lg", isOwn ? "order-1" : "order-2")}>
+                      <div className={cn("max-w-[85%] sm:max-w-[80%] lg:max-w-[70%]", isOwn ? "order-1" : "order-2")}>
                         <div
                           className={cn(
-                            "px-4 py-2 shadow-sm",
+                            "px-4 py-2.5 transition-all duration-200",
                             isOwn
-                              ? "bg-primary text-white"
-                              : "bg-white text-gray-900 border border-gray-200",
+                              ? "bg-primary text-white shadow-md shadow-green-900/10"
+                              : "bg-white text-gray-900 border border-gray-200 shadow-sm",
                             isFirstInGroup && isLastInGroup
                               ? "rounded-2xl"
                               : isFirstInGroup
                                 ? isOwn
-                                  ? "rounded-2xl rounded-br-md"
-                                  : "rounded-2xl rounded-bl-md"
+                                  ? "rounded-2xl rounded-br-none"
+                                  : "rounded-2xl rounded-bl-none"
                                 : isLastInGroup
                                   ? isOwn
-                                    ? "rounded-2xl rounded-tr-md"
-                                    : "rounded-2xl rounded-tl-md"
+                                    ? "rounded-2xl rounded-tr-none"
+                                    : "rounded-2xl rounded-tl-none"
                                   : isOwn
-                                    ? "rounded-r-2xl rounded-l-md"
-                                    : "rounded-l-2xl rounded-r-md"
+                                    ? "rounded-r-md rounded-l-2xl"
+                                    : "rounded-l-md rounded-r-2xl"
                           )}
                         >
-                          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                          <p className="text-[15px] leading-relaxed whitespace-pre-wrap break-words">
                             {message.content}
                           </p>
                         </div>
 
                         {isLastInGroup && (
-                          <div className={cn("flex items-center mt-1 space-x-1", isOwn ? "justify-end" : "justify-start")}>
-                            <span className="text-xs text-gray-500">
+                          <div className={cn("flex items-center mt-1.5 space-x-1.5 opacity-70", isOwn ? "justify-end" : "justify-start")}>
+                            <span className="text-[10px] font-medium text-gray-500">
                               {formatTime(message.created_at)}
                             </span>
                             {isOwn && (
                               <div className={cn(
                                 "flex items-center",
-                                message.read_at ? "text-blue-500" : "text-gray-400"
+                                message.read_at ? "text-green-600" : "text-gray-400"
                               )}>
                                 {message.read_at ? (
                                   <CheckCheck className="w-3.5 h-3.5" />
@@ -167,20 +186,8 @@ export const ChatWindow: React.FC<Props> = ({ currentUserId, otherProfile, messa
           ))
         )}
 
-        {/* Typing Indicator */}
-        {typingUsers.has(otherProfile?.user_id) && (
-          <div className="flex justify-start px-4 pb-4">
-            <div className="bg-white/80 backdrop-blur-sm px-4 py-3 rounded-2xl border border-gray-200/50">
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div ref={endRef} />
+        {/* Infinite Scroll / End Marker */}
+        <div className="h-4 w-full" />
       </div>
     </div>
   );

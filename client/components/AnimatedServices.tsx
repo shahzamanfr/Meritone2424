@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface Service {
-  id: number;
+  id: number | string;
   title: string;
   description: string;
   icon: string;
@@ -130,8 +130,8 @@ const AnimatedServices: React.FC = () => {
       {/* Left side content */}
       <div className="absolute left-8 top-1/2 transform -translate-y-1/2 z-10">
         <div className="mb-4">
-          <span className="text-green-400 text-sm font-semibold tracking-wider">
-            ⚡ EXPERT SERVICES
+          <span className="text-green-400 text-sm font-semibold tracking-wider uppercase">
+            ⚡ Platform Capabilities
           </span>
         </div>
         <h1 className="text-white text-5xl font-bold leading-tight">
@@ -140,8 +140,8 @@ const AnimatedServices: React.FC = () => {
           <span className="text-green-400">Skill Growth</span>
         </h1>991
         <div className="mt-8 flex items-center">
-          <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center mr-4">
-            <span className="text-black font-bold text-lg">ST</span>
+          <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center mr-4 overflow-hidden">
+            <img src="/meritone-logo.png" alt="MeritOne" className="w-9 h-9 object-contain" />
           </div>
           <div>
             <div className="text-white font-semibold">MeritOne</div>

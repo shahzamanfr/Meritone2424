@@ -1,4 +1,6 @@
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import ServicesShowcase from "@/components/ServicesShowcase";
 import FAQSection from "@/components/FAQSection";
@@ -14,10 +16,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/contexts/ProfileContext";
 import { useNavigate } from "react-router-dom";
 
+
 export default function Index() {
   const { isAuthenticated, isEmailVerified } = useAuth();
-  const { hasProfile } = useProfile();
+  const { hasProfile, loading } = useProfile();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const handleGetStartedClick = () => {
     if (!isAuthenticated) {
@@ -32,16 +36,12 @@ export default function Index() {
     }
   };
 
-  const handleMessagesClick = () => {
-    if (!isAuthenticated) {
-      navigate("/signup");
-    } else if (!isEmailVerified) {
-      alert("Please verify your email before accessing messages.");
-    } else if (!hasProfile) {
-      navigate("/create-profile");
-    } else {
-      navigate("/messages");
-    }
+  const handleCollabHubClick = () => {
+    toast({
+      title: "Coming Soon",
+      description: "Our Collab Hub is under construction!",
+      duration: 3000
+    });
   };
 
   return (
@@ -49,53 +49,52 @@ export default function Index() {
       <Header />
 
       {/* Hero Section */}
-      <main className="container mx-auto px-6 py-16 lg:py-24">
+      <main className="container mx-auto px-6 py-12 lg:py-16">
         <motion.div
-          className="grid lg:grid-cols-2 gap-12 items-center"
+          className="grid lg:grid-cols-2 gap-8 items-center"
           variants={staggerContainer}
           initial="initial"
           animate="animate"
         >
           {/* Left Content */}
-          <motion.div className="space-y-8" variants={fadeInLeft}>
-            {/* Success Metric */}
-            <div className="flex items-center space-x-2 text-sm">
-              <span className="text-primary">✓</span>
-              <span className="text-gray-600">
-                Join 20,000+ Happy Skills Traders
-              </span>
-            </div>
-
+          <motion.div className="space-y-7" variants={fadeInLeft}>
             {/* Main Headline */}
-            <div className="space-y-6">
-              <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold text-gray-900 leading-tight">
-                Transform your{" "}
-                <span className="block">digital presence to</span>
-                <span className="block">grow your business</span>
+            <div className="space-y-5">
+              <p className="text-base text-gray-500 leading-relaxed">
+                Most work fails before it begins because the right people never meet
+              </p>
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 leading-snug">
+                A platform for <span className="block sm:inline">skill exchange</span> and collaborative work
               </h1>
 
-              <p className="text-lg text-gray-600 max-w-lg leading-relaxed">
-                Unlock growth and collaboration with our skill trading platform.
-                From seamless skill exchange to cutting-edge collaboration
-                tools, we help your talents thrive in a cooperative world. Let's
-                build the future together.
+              <p className="text-base text-gray-600 max-w-lg leading-relaxed">
+                Post what you can do or what you need.<br />
+                Relevant people and opportunities surface automatically.
               </p>
             </div>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-4 pt-2">
               <Button
                 onClick={handleGetStartedClick}
-                className="bg-primary hover:bg-primary/90 text-white px-8 py-3 text-base"
+                className="bg-green-600 hover:bg-green-700 text-white px-8 py-6 text-base font-semibold rounded-md transition-all duration-300 shadow-sm active:scale-95"
               >
-                {!isAuthenticated ? "Get Started →" : !hasProfile ? "Create Profile →" : "Let's Trade →"}
+                <span className="relative z-10">
+                  {!isAuthenticated
+                    ? "Get Started"
+                    : loading
+                      ? "Loading..."
+                      : !hasProfile
+                        ? "Create Profile"
+                        : "Start Trading"}
+                </span>
               </Button>
               <Button
-                onClick={handleMessagesClick}
+                onClick={handleCollabHubClick}
                 variant="outline"
-                className="border-gray-200 text-gray-700 px-8 py-3 text-base"
+                className="bg-white/50 backdrop-blur-sm border border-gray-300 text-gray-700 hover:bg-gray-100/80 hover:border-gray-400 px-8 py-6 text-base font-semibold rounded-md transition-all duration-300 active:scale-95 shadow-sm"
               >
-                💬 Messages →
+                Collab Hub
               </Button>
             </div>
           </motion.div>
@@ -104,9 +103,9 @@ export default function Index() {
           <motion.div className="relative" variants={fadeInRight}>
             <div className="flex items-center justify-center">
               <img
-                src="https://cdn.builder.io/api/v1/image/assets%2F5bdae9b2904d4e6f8e00b8c0f2e5670e%2Fc9d4ba38360a440b90b602f6915db14e?format=webp&width=800"
-                alt="WorkTrade skill exchange illustration showing people collaborating and trading skills"
-                className="w-full h-auto max-w-lg rounded-lg"
+                src="/hero-illustration.png"
+                alt="MeritOne skill exchange illustration showing people collaborating"
+                className="w-full h-auto max-w-2xl rounded-lg"
               />
             </div>
           </motion.div>
@@ -115,7 +114,7 @@ export default function Index() {
 
       {/* Stats Section */}
       <motion.section
-        className="bg-black text-white py-16 lg:py-24"
+        className="bg-black text-white py-12 lg:py-16"
         initial="initial"
         whileInView="animate"
         viewport={{ once: true, margin: "-100px" }}
@@ -123,8 +122,8 @@ export default function Index() {
       >
         <div className="container mx-auto px-6">
           {/* Sliding Text Animation - At top of about us */}
-          <div className="overflow-hidden whitespace-nowrap border-b border-gray-800 pb-8 mb-16">
-            <div className="animate-slide-left inline-flex space-x-16 text-4xl lg:text-6xl font-bold opacity-30">
+          <div className="overflow-hidden whitespace-nowrap border-b border-gray-800 pb-6 mb-10">
+            <div className="animate-slide-left inline-flex space-x-16 text-3xl lg:text-4xl font-bold opacity-30">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-500 drop-shadow-lg">
                 SkillSwap
               </span>
@@ -159,7 +158,7 @@ export default function Index() {
           </div>
 
           <motion.div
-            className="grid lg:grid-cols-2 gap-12 items-center"
+            className="grid lg:grid-cols-2 gap-8 items-center"
             variants={staggerContainer}
           >
             {/* Left Video */}
@@ -182,25 +181,17 @@ export default function Index() {
             </motion.div>
 
             {/* Right Content */}
-            <motion.div className="space-y-6" variants={fadeInRight}>
+            <motion.div className="space-y-4" variants={fadeInRight}>
               <div className="flex items-center space-x-2 text-sm">
                 <span className="text-primary">✓</span>
                 <span className="text-gray-300">ABOUT US</span>
               </div>
 
-              <h2 className="text-3xl lg:text-4xl xl:text-5xl font-bold leading-tight">
-                Innovation and Success in{" "}
-                <span className="block">Digital Marketing</span>
+              <h2 className="text-3xl lg:text-4xl font-bold leading-tight">
+                Collaboration is based on ability
               </h2>
-
-              <p className="text-gray-300 text-lg leading-relaxed">
-                Where innovation meets strategy. With 25 years of experience, we
-                are a forward-thinking digital marketing agency dedicated to
-                helping businesses like yours achieve exceptional growth and
-                success in the digital landscape. Our team is passionate about
-                delivering tailored marketing solutions that drive results,
-                leveraging decades of industry expertise to stay ahead of the
-                curve.
+              <p className="text-gray-300 text-base leading-relaxed">
+                MeritOne connects people through skills rather than money. Users collaborate by trading expertise, completing real work, and building experience through contribution.
               </p>
             </motion.div>
           </motion.div>
@@ -209,7 +200,7 @@ export default function Index() {
 
       {/* Join Community Section */}
       <motion.section
-        className="bg-black text-white py-16 lg:py-24"
+        className="bg-black text-white py-12 lg:py-16"
         initial="initial"
         whileInView="animate"
         viewport={{ once: true, margin: "-100px" }}
@@ -217,61 +208,56 @@ export default function Index() {
       >
         <div className="container mx-auto px-6">
           <motion.div
-            className="grid lg:grid-cols-2 gap-12 items-center"
+            className="grid lg:grid-cols-2 gap-8 items-center"
             variants={staggerContainer}
           >
             {/* Left Content */}
-            <motion.div className="space-y-8" variants={fadeInLeft}>
-              {/* Success Metric */}
+            <motion.div className="space-y-7" variants={fadeInLeft}>
+              {/* Success Metric Removed */}
               <div className="flex items-center space-x-2 text-sm">
-                <span className="text-primary">✓</span>
-                <span className="text-gray-300">
-                  Join 20,000+ Active Skill Traders
+                <span className="text-primary font-bold text-base">✓</span>
+                <span className="text-gray-200 font-medium">
+                  Verified Skill Exchange Network
                 </span>
               </div>
 
               {/* Main Headline */}
-              <div className="space-y-6">
-                <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold text-white leading-tight">
-                  Connect with professionals{" "}
-                  <span className="block">and start trading skills</span>
+              <div className="space-y-5">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-snug">
+                  Find collaborators through skills
                 </h1>
 
-                <p className="text-lg text-gray-300 max-w-lg leading-relaxed">
-                  Join our thriving community where knowledge flows freely.
-                  Share your expertise, learn new skills, and build meaningful
-                  professional relationships that advance your career.
+                <p className="text-base text-gray-300 max-w-lg leading-relaxed">
+                  Post what you can do, discover what others need, and collaborate through skill-based trades.
                 </p>
               </div>
 
               {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-4 pt-2">
                 <Button
                   onClick={() => {
-                    const isAuth = localStorage.getItem("isAuthenticated");
-                    if (isAuth === "true") {
-                      window.location.href = "/feed";
+                    if (isAuthenticated) {
+                      navigate("/feed");
                     } else {
-                      window.location.href = "/create-profile";
+                      navigate("/signup");
                     }
                   }}
-                  className="bg-primary hover:bg-primary/90 text-black px-8 py-3 text-base font-semibold"
+                  className="bg-green-600 hover:bg-green-700 text-white px-8 py-6 text-base font-semibold rounded-md transition-all duration-300 shadow-sm active:scale-95"
                 >
-                  Join the Community →
+                  Join the Community
                 </Button>
                 <Button
                   onClick={() => {
-                    const isAuth = localStorage.getItem("isAuthenticated");
-                    if (isAuth === "true") {
-                      window.location.href = "/feed";
+                    if (isAuthenticated) {
+                      navigate("/feed");
                     } else {
-                      window.location.href = "/create-profile";
+                      navigate("/signup");
                     }
                   }}
                   variant="outline"
-                  className="border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white px-8 py-3 text-base"
+                  className="bg-white/5 backdrop-blur-md border border-white/20 text-white hover:bg-white hover:text-black hover:border-white px-8 py-6 text-base font-semibold rounded-md transition-all duration-300 active:scale-95"
                 >
-                  Browse Skills →
+                  Browse Skills
                 </Button>
               </div>
             </motion.div>
@@ -295,7 +281,7 @@ export default function Index() {
 
       {/* AI Trade-Matching Section */}
       <motion.section
-        className="bg-black text-white py-16 lg:py-24"
+        className="bg-black text-white py-12 lg:py-16"
         initial="initial"
         whileInView="animate"
         viewport={{ once: true, margin: "-100px" }}
@@ -303,7 +289,7 @@ export default function Index() {
       >
         <div className="container mx-auto px-6">
           <motion.div
-            className="grid lg:grid-cols-2 gap-12 items-center"
+            className="grid lg:grid-cols-2 gap-8 items-center"
             variants={staggerContainer}
           >
             {/* Left Image */}
@@ -318,59 +304,52 @@ export default function Index() {
             </motion.div>
 
             {/* Right Content */}
-            <motion.div className="space-y-8" variants={fadeInRight}>
+            <motion.div className="space-y-6" variants={fadeInRight}>
               {/* Success Metric */}
               <div className="flex items-center space-x-2 text-sm">
                 <span className="text-primary">✓</span>
                 <span className="text-gray-300">
-                  AI-Powered Smart Matching Technology
+                  AI-Assisted Skill Matching
                 </span>
               </div>
 
               {/* Main Headline */}
-              <div className="space-y-6">
-                <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold text-white leading-tight">
-                  Smart AI finds your perfect{" "}
-                  <span className="block">trade partners instantly</span>
+              <div className="space-y-4">
+                <h1 className="text-4xl lg:text-5xl font-bold text-white leading-tight">
+                  Find relevant trades without searching
                 </h1>
 
-                <p className="text-lg text-gray-300 max-w-lg leading-relaxed">
-                  Connect with professionals and start trading skills with our
-                  AI-powered matching system. Our smart algorithm learns from
-                  your preferences and instantly connects you with the right
-                  people who are looking for your skills or offering exactly
-                  what you need.
+                <p className="text-base text-gray-300 max-w-lg leading-relaxed">
+                  MeritOne uses AI to surface trades and collaborators based on your skills and activity. The system highlights people who need what you offer or offer what you need, making collaboration faster and more relevant.
                 </p>
               </div>
 
               {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-4 pt-2">
                 <Button
                   onClick={() => {
-                    const isAuth = localStorage.getItem("isAuthenticated");
-                    if (isAuth === "true") {
-                      window.location.href = "/feed";
+                    if (isAuthenticated) {
+                      navigate("/feed");
                     } else {
-                      window.location.href = "/create-profile";
+                      navigate("/signup");
                     }
                   }}
-                  className="bg-primary hover:bg-primary/90 text-black px-8 py-3 text-base font-semibold"
+                  className="bg-green-600 hover:bg-green-700 text-white px-8 py-6 text-base font-semibold rounded-md transition-all duration-300 shadow-sm active:scale-95"
                 >
-                  Try AI Matching →
+                  Try AI Matching
                 </Button>
                 <Button
                   onClick={() => {
-                    const isAuth = localStorage.getItem("isAuthenticated");
-                    if (isAuth === "true") {
-                      window.location.href = "/feed";
+                    if (isAuthenticated) {
+                      navigate("/feed");
                     } else {
-                      window.location.href = "/create-profile";
+                      navigate("/signup");
                     }
                   }}
                   variant="outline"
-                  className="border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white px-8 py-3 text-base"
+                  className="bg-white/5 backdrop-blur-md border border-white/20 text-white hover:bg-white hover:text-black hover:border-white px-8 py-6 text-base font-semibold rounded-md transition-all duration-300 active:scale-95"
                 >
-                  See How It Works →
+                  See How It Works
                 </Button>
               </div>
             </motion.div>
@@ -382,31 +361,32 @@ export default function Index() {
       <FAQSection />
 
       {/* Footer */}
-      <footer className="bg-white text-gray-900 py-16 border-t border-gray-200">
+      <footer className="bg-white text-gray-900 py-12 border-t border-gray-200">
         <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Brand Section */}
             <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">ST</span>
-                </div>
-                <span className="text-xl font-semibold text-gray-900">
+              <div className="flex items-center space-x-3">
+                <img
+                  src="/meritone-logo.png"
+                  alt="MeritOne"
+                  className="w-10 h-10 object-contain"
+                />
+                <span className="text-2xl font-bold tracking-tight text-gray-900">
                   MeritOne
                 </span>
               </div>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                Connect with professionals and start trading skills. Transform
-                your expertise into opportunities.
+              <p className="text-gray-600 text-sm leading-relaxed max-w-xs font-medium">
+                Connect through skills. Collaborate through work.
               </p>
             </div>
 
             {/* Quick Links */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900">
+            <div className="space-y-3">
+              <h3 className="text-base font-semibold text-gray-900">
                 Quick Links
               </h3>
-              <ul className="space-y-2 text-gray-600">
+              <ul className="space-y-1.5 text-gray-700 text-sm font-medium">
                 <li>
                   <a
                     href="/skills"
@@ -425,10 +405,10 @@ export default function Index() {
                 </li>
                 <li>
                   <a
-                    href="/about"
+                    href="/trades?view=new"
                     className="hover:text-primary transition-colors"
                   >
-                    About Us
+                    Create a Trade
                   </a>
                 </li>
                 <li>
@@ -439,13 +419,23 @@ export default function Index() {
                     Community
                   </a>
                 </li>
+                <li>
+                  <a
+                    href="/about"
+                    className="hover:text-primary transition-colors"
+                  >
+                    About MeritOne
+                  </a>
+                </li>
               </ul>
             </div>
 
-            {/* Services */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900">Services</h3>
-              <ul className="space-y-2 text-gray-600">
+            {/* Platform */}
+            <div className="space-y-3">
+              <h3 className="text-base font-semibold text-gray-900">
+                Platform
+              </h3>
+              <ul className="space-y-1.5 text-gray-700 text-sm font-medium">
                 <li>
                   <span className="hover:text-primary transition-colors cursor-pointer">
                     Skill Exchange
@@ -453,32 +443,34 @@ export default function Index() {
                 </li>
                 <li>
                   <span className="hover:text-primary transition-colors cursor-pointer">
-                    AI Matching
+                    AI-Assisted Matching
                   </span>
                 </li>
                 <li>
                   <span className="hover:text-primary transition-colors cursor-pointer">
-                    Project Trading
+                    Project-Based Trades
                   </span>
                 </li>
                 <li>
                   <span className="hover:text-primary transition-colors cursor-pointer">
-                    Mentorship
+                    Collaboration Help
                   </span>
                 </li>
               </ul>
             </div>
 
             {/* Contact */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900">Contact</h3>
-              <div className="space-y-2 text-gray-600">
+            <div className="space-y-3">
+              <h3 className="text-base font-semibold text-gray-900">
+                Contact
+              </h3>
+              <div className="space-y-2 text-gray-700 text-sm font-medium">
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm">Email:</span>
+                  <span>Email:</span>
                 </div>
                 <a
                   href="mailto:mohammedzama9024@gmail.com"
-                  className="text-primary hover:text-primary/80 transition-colors text-sm break-all"
+                  className="text-primary hover:text-primary/80 transition-colors block break-all font-semibold"
                 >
                   mohammedzama9024@gmail.com
                 </a>
@@ -487,12 +479,14 @@ export default function Index() {
           </div>
 
           {/* Bottom Section */}
-          <div className="border-t border-gray-200 mt-12 pt-8">
-            <div className="text-center space-y-2">
+          <div className="border-t border-gray-200 mt-8 pt-6">
+            <div className="text-center space-y-1 font-medium">
               <div className="text-gray-600 text-sm">
-                © 2024 MeritOne. All rights reserved.
+                © 2026 MeritOne. All rights reserved.
               </div>
-              <div className="text-gray-600 text-sm">Mohammed Shahzaman</div>
+              <div className="text-gray-600 text-sm">
+                Built by Mohammed Shahzaman
+              </div>
             </div>
           </div>
         </div>

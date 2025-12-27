@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useParams } from "react-router-dom";
@@ -28,7 +28,7 @@ import {
 const Profile: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams(); // Get user ID from URL params
-  const { isAuthenticated, isEmailVerified, user: authUser } = useAuth();
+  const { isAuthenticated, isEmailVerified, user: authUser, loading: authLoading } = useAuth();
   const { profile, loading, hasProfile } = useProfile();
   const { getUserPosts } = usePosts();
   const [activeTab, setActiveTab] = useState<"posts" | "about" | "skills" | "followers" | "following">("posts");
@@ -57,6 +57,9 @@ const Profile: React.FC = () => {
   const [showFollowingModal, setShowFollowingModal] = useState(false);
   const [prefetchedFollowers, setPrefetchedFollowers] = useState<any[]>([]);
   const [prefetchedFollowing, setPrefetchedFollowing] = useState<any[]>([]);
+
+  // Track if we've already redirected to prevent glitching
+  const hasRedirected = useRef(false);
 
   // Determine if we're viewing another user's profile
   const isViewingOtherUser = id && id !== authUser?.id;
@@ -114,29 +117,9 @@ const Profile: React.FC = () => {
     fetchTargetUserData();
   }, [targetUserId, isViewingOtherUser, authUser]); // Refetch when target user changes
 
-  useEffect(() => {
-    // If viewing another user's profile, no authentication required
-    if (isViewingOtherUser) {
-      return;
-    }
+  // CRITICAL: Early return checks - prevent rendering until all checks pass
+  // This completely eliminates glitching by not rendering anything until ready
 
-    // Only check authentication for own profile
-    if (!isAuthenticated) {
-      navigate("/signin");
-      return;
-    }
-
-    if (!isEmailVerified) {
-      navigate("/");
-      return;
-    }
-
-    // Only redirect to create-profile if viewing own profile and no profile exists
-    if (!loading && !hasProfile) {
-      navigate("/create-profile");
-      return;
-    }
-  }, [isAuthenticated, isEmailVerified, hasProfile, loading, isViewingOtherUser]);
 
   // no-op placeholder for removed messaging modal
 
@@ -410,8 +393,8 @@ const Profile: React.FC = () => {
     };
   }, []);
 
-  // Show loading state when fetching profile data
-  if (isLoading) {
+  // Show loading state when ANY loading is happening
+  if (authLoading || loading || isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-10">
@@ -422,6 +405,28 @@ const Profile: React.FC = () => {
         </div>
       </div>
     );
+  }
+
+  // CRITICAL: Authentication checks - must perform AFTER loading check but BEFORE rendering content
+  // Only check authentication for own profile (not when viewing others)
+  if (!isViewingOtherUser && !hasRedirected.current) {
+    if (!isAuthenticated) {
+      hasRedirected.current = true;
+      navigate("/signin");
+      return null;
+    }
+
+    if (!isEmailVerified) {
+      hasRedirected.current = true;
+      navigate("/");
+      return null;
+    }
+
+    if (!hasProfile) {
+      hasRedirected.current = true;
+      navigate("/create-profile");
+      return null;
+    }
   }
 
   // Show error if user profile not found
@@ -636,7 +641,7 @@ const Profile: React.FC = () => {
                   <img
                     src={
                       currentProfile?.profile_picture ||
-                      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
+                      ""
                     }
                     alt={currentProfile?.name || "User"}
                     className="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white object-cover shadow-xl"
@@ -852,12 +857,12 @@ const Profile: React.FC = () => {
                             <img
                               src={
                                 post.user?.profile_picture ||
-                                "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
+                                ""
                               }
                               alt={post.user?.name || "User"}
                               className="w-14 h-14 rounded-full object-cover border-2 border-gray-200"
                               onError={(e) => {
-                                e.currentTarget.src = "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face";
+                                e.currentTarget.src = "";
                               }}
                             />
                             <div className="flex-1 min-w-0">
@@ -1139,7 +1144,7 @@ const Profile: React.FC = () => {
                     {followers.map((follower) => (
                       <div key={follower.user_id} className="flex items-center space-x-4 p-6 bg-white border border-gray-200 rounded-2xl hover:shadow-lg transition-all duration-300">
                         <img
-                          src={follower.profile_picture || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"}
+                          src={follower.profile_picture || ""}
                           alt={follower.name}
                           className="w-16 h-16 rounded-full object-cover cursor-pointer hover:ring-4 hover:ring-green-100 transition-all"
                           onClick={() => navigate(`/profile/${follower.user_id}`)}
@@ -1209,7 +1214,7 @@ const Profile: React.FC = () => {
                     {following.map((user) => (
                       <div key={user.user_id} className="flex items-center space-x-4 p-6 bg-white border border-gray-200 rounded-2xl hover:shadow-lg transition-all duration-300">
                         <img
-                          src={user.profile_picture || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"}
+                          src={user.profile_picture || ""}
                           alt={user.name}
                           className="w-16 h-16 rounded-full object-cover cursor-pointer hover:ring-4 hover:ring-green-100 transition-all"
                           onClick={() => navigate(`/profile/${user.user_id}`)}

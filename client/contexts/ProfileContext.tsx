@@ -1,9 +1,13 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/lib/supabase';
 
 export type UserProfile = Database['public']['Tables']['profiles']['Row'] | null;
+
+// Simple cache for profile data
+const profileCache = new Map<string, { data: UserProfile; timestamp: number }>();
+const CACHE_TTL = 60000; // 1 minute cache
 
 type ProfileContextType = {
   profile: UserProfile;
@@ -17,7 +21,7 @@ type ProfileContextType = {
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState<UserProfile>(null);
   const [loading, setLoading] = useState(true);
 
@@ -136,9 +140,25 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    // CRITICAL: specific check for auth loading to prevent race conditions
+    if (authLoading) {
+      return;
+    }
+
     const loadProfile = async () => {
       if (!isAuthenticated || !user) {
         setProfile(null);
+        setLoading(false);
+        return;
+      }
+
+      // CRITICAL: Set loading to true when starting to fetch
+      setLoading(true);
+
+      // Check cache first
+      const cached = profileCache.get(user.id);
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        setProfile(cached.data);
         setLoading(false);
         return;
       }
@@ -154,6 +174,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
           console.error('Load profile error:', error);
         }
 
+        // Update cache
+        if (data) {
+          profileCache.set(user.id, { data, timestamp: Date.now() });
+        }
+
         setProfile(data || null);
       } catch (error) {
         console.error('Load profile error:', error);
@@ -164,16 +189,17 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     };
 
     loadProfile();
-  }, [user, isAuthenticated]);
+  }, [user, isAuthenticated, authLoading]);
 
-  const value = {
+  // Memoize the context value to prevent unnecessary re-renders
+  const value = useMemo(() => ({
     profile,
     loading,
     createProfile,
     updateProfile,
     uploadProfilePicture,
     hasProfile: !!profile,
-  };
+  }), [profile, loading]);
 
   return (
     <ProfileContext.Provider value={value}>

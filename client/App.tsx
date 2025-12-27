@@ -10,7 +10,6 @@ import { ProfileProvider } from "./contexts/ProfileContext";
 import { PostsProvider } from "./contexts/PostsContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import Index from "./pages/Index";
-import Skills from "./pages/Skills";
 import Trades from "./pages/Trades";
 import About from "./pages/About";
 import ResumePage from "./pages/Resume";
@@ -49,7 +48,6 @@ const App = () => (
                   <Route path="/signup" element={<SignUp />} />
                   <Route path="/signin" element={<SignIn />} />
                   <Route path="/auth/callback" element={<AuthCallback />} />
-                  <Route path="/skills" element={<Skills />} />
                   <Route path="/trades" element={<Trades />} />
                   {/* About removed from header; route kept if directly visited */}
                   <Route path="/about" element={<About />} />

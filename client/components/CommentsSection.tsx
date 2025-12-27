@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/contexts/ProfileContext';
 import { usePosts, type Comment } from '@/contexts/PostsContext';
+import { EmailVerificationNotice } from '@/components/EmailVerificationNotice';
 import { formatDistanceToNow } from 'date-fns';
 import {
   Send,
@@ -27,7 +28,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
   onCommentAdded,
   onToggleComments
 }) => {
-  const { user } = useAuth();
+  const { user, isEmailVerified } = useAuth();
   const { addComment, deleteComment, loadComments } = usePosts();
   const { profile } = useProfile();
   const [comments, setComments] = useState<Comment[]>([]);
@@ -55,7 +56,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
   }, [showComments, postId]);
 
   const handleSubmitComment = async () => {
-    if (!newComment.trim() || !user) return;
+    if (!newComment.trim() || !user || !isEmailVerified) return;
 
     setIsSubmitting(true);
     try {
@@ -120,47 +121,51 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
       {showComments && (
         <div className="px-6 pb-4 space-y-4">
           {/* Add Comment Form */}
-          {user && (
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <div className="space-y-3">
-                <div className="flex items-start space-x-3">
-                  <img
-                    src={profile?.profile_picture || user.user_metadata?.avatar_url || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"}
-                    alt="Your profile"
-                    className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                  />
-                  <div className="flex-1">
-                    <textarea
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
-                      placeholder="Write a comment..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
-                      rows={2}
-                      maxLength={500}
+          {user ? (
+            isEmailVerified ? (
+              <div className="bg-white rounded-lg border border-gray-200 p-4">
+                <div className="space-y-3">
+                  <div className="flex items-start space-x-3">
+                    <img
+                      src={profile?.profile_picture || user.user_metadata?.avatar_url || ""}
+                      alt="Your profile"
+                      className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                     />
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-xs text-gray-500">
-                        {newComment.length}/500
-                      </span>
-                      <Button
-                        type="button"
-                        disabled={!newComment.trim() || isSubmitting}
-                        size="sm"
-                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 text-sm"
-                        onClick={handleSubmitComment}
-                      >
-                        {isSubmitting ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Send className="w-4 h-4" />
-                        )}
-                      </Button>
+                    <div className="flex-1">
+                      <textarea
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        placeholder="Write a comment..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
+                        rows={2}
+                        maxLength={500}
+                      />
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs text-gray-500">
+                          {newComment.length}/500
+                        </span>
+                        <Button
+                          type="button"
+                          disabled={!newComment.trim() || isSubmitting}
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 text-sm"
+                          onClick={handleSubmitComment}
+                        >
+                          {isSubmitting ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Send className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            ) : (
+              <EmailVerificationNotice />
+            )
+          ) : null}
 
           {/* Comments List */}
           <div className="space-y-3">
@@ -184,12 +189,12 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
                     <img
                       src={
                         comment.user?.profile_picture ||
-                        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
+                        ""
                       }
                       alt={comment.user?.name || "User"}
                       className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                       onError={(e) => {
-                        e.currentTarget.src = "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face";
+                        e.currentTarget.src = "";
                       }}
                     />
                     <div className="flex-1 min-w-0">

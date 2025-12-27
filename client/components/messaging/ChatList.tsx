@@ -47,7 +47,7 @@ export const ChatList: React.FC<Props> = ({ items, currentUserId, selectedUserId
           >
             <div className="relative">
               <img
-                src={c.profile?.profile_picture || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"}
+                src={c.profile?.profile_picture || ""}
                 alt={c.profile?.name || "User"}
                 className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm"
               />

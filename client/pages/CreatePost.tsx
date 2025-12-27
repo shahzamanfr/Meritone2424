@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePosts } from '@/contexts/PostsContext';
 import { useProfile } from '@/contexts/ProfileContext';
 import { X, Image, Video, File, Plus, Trash2, Upload, Briefcase, Search } from 'lucide-react';
+import { EmailVerificationNotice } from '@/components/EmailVerificationNotice';
 
 type PostType = 'skill_offer' | 'skill_request' | 'project' | 'general';
 type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
@@ -29,7 +30,7 @@ interface PostData {
 
 const CreatePost: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, isEmailVerified } = useAuth();
+  const { isAuthenticated, isEmailVerified, loading } = useAuth();
   const { profile, hasProfile } = useProfile();
   const { createPost } = usePosts();
   const [step, setStep] = useState(1);
@@ -53,6 +54,48 @@ const CreatePost: React.FC = () => {
       previews: []
     }
   });
+
+  // Redirect if not authenticated or email not verified (wait for loading first)
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    navigate('/signin');
+    return null;
+  }
+
+  if (!isEmailVerified) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+          <div className="max-w-4xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => navigate('/feed')}
+                  className="text-gray-600 hover:text-green-600 transition-colors p-2 hover:bg-gray-100 rounded-lg"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+                <h1 className="text-xl font-bold text-gray-900">Create Post</h1>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="max-w-3xl mx-auto py-8 px-4">
+          <EmailVerificationNotice />
+        </div>
+      </div>
+    );
+  }
 
   const addSkill = () => {
     if (currentSkill.trim() && !postData.skills.includes(currentSkill.trim())) {
