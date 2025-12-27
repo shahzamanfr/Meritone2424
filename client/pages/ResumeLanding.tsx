@@ -60,22 +60,23 @@ export default function ResumeLandingPage() {
         <div className="min-h-screen bg-slate-50">
             <Header />
 
-            <div className="container mx-auto px-4 py-16 max-w-5xl">
+            <div className="container mx-auto px-4 py-12 sm:py-16 max-w-5xl">
 
                 {/* Hero Section */}
-                <div className="text-center mb-16">
-                    <h1 className="text-4xl md:text-5xl font-semibold text-slate-900 mb-4 tracking-tight">
-                        Build Your Resume, Find Skill Trades
+                <div className="text-center mb-12 sm:mb-16">
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-semibold text-slate-900 mb-5 tracking-tight leading-tight">
+                        Build Your Resume,{" "}
+                        <span className="block sm:inline">Find Skill Trades</span>
                     </h1>
-                    <p className="text-sm text-slate-500 max-w-2xl mx-auto mb-10">
+                    <p className="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-4">
                         Create your professional resume and let AI match you with relevant skill trading opportunities
                     </p>
 
-                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center px-4">
                         <Button
                             size="lg"
                             onClick={() => navigate("/resume/edit")}
-                            className="bg-green-600 hover:bg-green-700"
+                            className="bg-green-600 hover:bg-green-700 text-sm font-medium"
                             disabled={loading}
                         >
                             <FileText className="mr-2" size={18} />
@@ -86,26 +87,26 @@ export default function ResumeLandingPage() {
                 </div>
 
                 {/* Template Selection */}
-                <div className="mb-16">
-                    <h2 className="text-xl font-semibold text-slate-900 mb-8 text-center tracking-tight">
+                <div className="mb-12 sm:mb-16">
+                    <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 mb-6 sm:mb-8 text-center tracking-tight">
                         Choose Your Template
                     </h2>
 
-                    <div className="grid md:grid-cols-3 gap-5">
+                    <div className="grid md:grid-cols-3 gap-4 sm:gap-5">
                         {templates.map((template) => (
                             <button
                                 key={template.id}
                                 onClick={() => handleTemplateSelect(template.id)}
                                 className="group relative bg-white border border-slate-200 rounded-lg p-6 text-left hover:border-green-500 hover:shadow-md transition-all"
                             >
-                                <div className="mb-4">
-                                    <div className="text-xs font-medium text-green-600 mb-2">
+                                <div className="mb-3">
+                                    <div className="text-xs font-semibold text-green-600 mb-2">
                                         {template.score} ATS Score
                                     </div>
-                                    <h3 className="text-base font-semibold text-slate-900 mb-1.5">
+                                    <h3 className="text-base font-semibold text-slate-900 mb-2">
                                         {template.name}
                                     </h3>
-                                    <p className="text-sm text-slate-600 leading-relaxed mb-4">
+                                    <p className="text-sm text-slate-600 leading-relaxed mb-3">
                                         {template.description}
                                     </p>
                                 </div>
@@ -120,19 +121,19 @@ export default function ResumeLandingPage() {
                 </div>
 
                 {/* Features */}
-                <div className="border-t border-slate-200 pt-10">
-                    <div className="grid grid-cols-3 gap-8 text-center">
+                <div className="border-t border-slate-200 pt-8 sm:pt-10 px-4">
+                    <div className="grid grid-cols-3 gap-6 sm:gap-8 text-center">
                         <div>
-                            <div className="text-3xl font-semibold text-green-600 mb-2">AI</div>
-                            <div className="text-sm text-slate-600 font-medium">Smart Trade Matching</div>
+                            <div className="text-3xl sm:text-4xl font-semibold text-green-600 mb-2">AI</div>
+                            <div className="text-xs sm:text-sm text-slate-600 font-medium leading-tight">Smart Trade<br className="sm:hidden" /> Matching</div>
                         </div>
                         <div>
-                            <div className="text-3xl font-semibold text-green-600 mb-2">95%</div>
-                            <div className="text-sm text-slate-600 font-medium">ATS Optimized</div>
+                            <div className="text-3xl sm:text-4xl font-semibold text-green-600 mb-2">95%</div>
+                            <div className="text-xs sm:text-sm text-slate-600 font-medium">ATS Optimized</div>
                         </div>
                         <div>
-                            <div className="text-3xl font-semibold text-green-600 mb-2">3</div>
-                            <div className="text-sm text-slate-600 font-medium">Professional Templates</div>
+                            <div className="text-3xl sm:text-4xl font-semibold text-green-600 mb-2">3</div>
+                            <div className="text-xs sm:text-sm text-slate-600 font-medium leading-tight">Professional<br className="sm:hidden" /> Templates</div>
                         </div>
                     </div>
                 </div>

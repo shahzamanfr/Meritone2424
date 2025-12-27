@@ -6,11 +6,14 @@ type TradeUpdate = Database['public']['Tables']['trades']['Update'];
 
 export interface Comment {
   id: string;
-  author: string;
-  text: string;
-  timestamp: string;
-  userId: string;
-  status?: 'pending' | 'accepted' | 'rejected';
+  trade_id: string;
+  user_id: string;
+  content: string;
+  user_display_name: string;
+  user_profile_picture: string | null;
+  created_at: string;
+  updated_at: string;
+  status?: 'pending' | 'accepted' | 'rejected'; // Keep for UI compatibility if needed
 }
 
 export interface TradeWithComments extends Trade {
@@ -23,7 +26,10 @@ export class TradesService {
     try {
       const { data, error } = await supabase
         .from('trades')
-        .select('*')
+        .select(`
+          *,
+          trade_comments(*)
+        `)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -35,7 +41,16 @@ export class TradesService {
       const tradesWithComments: TradeWithComments[] = data?.map(trade => {
         return {
           ...trade,
-          comments: trade.comments || []
+          comments: (trade.trade_comments as any[] || []).map(c => ({
+            id: c.id,
+            trade_id: c.trade_id,
+            user_id: c.user_id,
+            content: c.content,
+            user_display_name: c.user_display_name,
+            user_profile_picture: c.user_profile_picture,
+            created_at: c.created_at,
+            updated_at: c.updated_at
+          }))
         };
       }) || [];
 
@@ -51,7 +66,10 @@ export class TradesService {
     try {
       const { data, error } = await supabase
         .from('trades')
-        .select('*')
+        .select(`
+          *,
+          trade_comments(*)
+        `)
         .eq('id', id)
         .single();
 
@@ -62,7 +80,16 @@ export class TradesService {
 
       const tradeWithComments: TradeWithComments = {
         ...data,
-        comments: data.comments || []
+        comments: (data.trade_comments as any[] || []).map(c => ({
+          id: c.id,
+          trade_id: c.trade_id,
+          user_id: c.user_id,
+          content: c.content,
+          user_display_name: c.user_display_name,
+          user_profile_picture: c.user_profile_picture,
+          created_at: c.created_at,
+          updated_at: c.updated_at
+        }))
       };
 
       return { data: tradeWithComments, error: null };
@@ -144,42 +171,68 @@ export class TradesService {
   }
 
   // Add comment to trade
-  static async addComment(tradeId: string, comment: Comment): Promise<{ error: string | null }> {
+  static async addComment(tradeId: string, comment: any): Promise<{ data: any | null; error: string | null }> {
     try {
-      // First get the current trade
-      const { data: trade, error: fetchError } = await supabase
-        .from('trades')
-        .select('comments')
-        .eq('id', tradeId)
-        .single();
-
-      if (fetchError) {
-        console.error('Error fetching trade for comment:', fetchError);
-        return { error: fetchError.message };
-      }
-
-      // Add the new comment to the existing comments
-      const currentComments = trade.comments || [];
-      const updatedComments = [...currentComments, comment];
-
-      // Update the trade with the new comment
-      const { error } = await supabase
-        .from('trades')
-        .update({
-          comments: updatedComments,
-          updated_at: new Date().toISOString()
+      // Insert into the new trade_comments table
+      const { data, error } = await supabase
+        .from('trade_comments')
+        .insert({
+          trade_id: tradeId,
+          user_id: comment.user_id || comment.userId,
+          content: comment.content || comment.text,
+          user_display_name: comment.user_display_name || comment.author,
+          user_profile_picture: comment.user_profile_picture || null
         })
-        .eq('id', tradeId);
+        .select()
+        .single();
 
       if (error) {
         console.error('Error adding comment:', error);
-        return { error: error.message };
+        return { data: null, error: error.message };
       }
 
-      return { error: null };
+      return { data, error: null };
     } catch (error) {
       console.error('Error in addComment:', error);
-      return { error: 'Failed to add comment' };
+      return { data: null, error: 'Failed to add comment' };
+    }
+  }
+
+  // Get trades for a specific user (for Profille page)
+  static async getTradesByUserId(userId: string): Promise<{ data: TradeWithComments[] | null; error: string | null }> {
+    try {
+      const { data, error } = await supabase
+        .from('trades')
+        .select(`
+          *,
+          trade_comments(*)
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching user trades:', error);
+        return { data: null, error: error.message };
+      }
+
+      const tradesWithComments: TradeWithComments[] = data?.map(trade => ({
+        ...trade,
+        comments: (trade.trade_comments as any[] || []).map(c => ({
+          id: c.id,
+          trade_id: c.trade_id,
+          user_id: c.user_id,
+          content: c.content,
+          user_display_name: c.user_display_name,
+          user_profile_picture: c.user_profile_picture,
+          created_at: c.created_at,
+          updated_at: c.updated_at
+        }))
+      })) || [];
+
+      return { data: tradesWithComments, error: null };
+    } catch (error) {
+      console.error('Error in getTradesByUserId:', error);
+      return { data: null, error: 'Failed to fetch user trades' };
     }
   }
 

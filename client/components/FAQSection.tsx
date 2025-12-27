@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { HelpCircle } from "lucide-react";
 
 interface FAQItem {
   id: number;
@@ -11,33 +12,51 @@ interface FAQItem {
 const faqData: FAQItem[] = [
   {
     id: 1,
-    question: "What services do you offer?",
+    question: "Is MeritOne a freelancing platform?",
     answer:
-      "We provide Skill Exchange Optimization, Project-Based Trading, Skill Network Marketing, Mentorship Trading, Creative Skills Exchange, and Technical Skills Bartering.",
+      "No. MeritOne is primarily built for skill exchange and collaboration. Payments are optional and only happen if both parties agree as part of a trade.",
   },
   {
     id: 2,
-    question: "How do I choose the right skill exchange for my needs?",
+    question: "Is money required to use MeritOne?",
     answer:
-      "Our platform analyzes your skills, goals, and project requirements to match you with the most suitable trading opportunities. We consider your expertise level, time availability, and desired learning outcomes.",
+      "No. Most trades happen without money. Users can exchange skills purely through collaboration, but payments or tips are available if participants choose to include them.",
   },
   {
     id: 3,
-    question: "How long does it take to see results from skill trading?",
+    question: "When does payment come into a trade?",
     answer:
-      "Results vary depending on your engagement level and the type of skills being exchanged. Most users see meaningful collaborations within 2-4 weeks of active participation.",
+      "Payment is optional and decided by the users involved. A trade can be skill-for-skill, skill-plus-payment, or include tips after collaboration.",
   },
   {
     id: 4,
-    question: "Can I combine multiple skill exchanges?",
+    question: "Why would someone pay if skill exchange exists?",
     answer:
-      "Absolutely! You can participate in multiple skill exchanges simultaneously. Our platform helps you manage different trading relationships and ensures you can balance your commitments effectively.",
+      "Some collaborations involve uneven effort or urgency. Optional payments and tips allow flexibility without turning the platform into a pay-only marketplace.",
   },
   {
     id: 5,
-    question: "Is there a cost to join the skill trading platform?",
+    question: "How is this different from freelancing sites then?",
     answer:
-      "Our basic skill trading features are completely free. We offer premium features for advanced matching, priority support, and enhanced project management tools.",
+      "Freelancing platforms are payment-first. MeritOne is collaboration-first. Skills, contribution, and intent come before money.",
+  },
+  {
+    id: 6,
+    question: "What if one person doesn’t complete their part of the trade?",
+    answer:
+      "User reliability is reflected through activity, completed trades, and collaboration history. Poor participation affects credibility and future opportunities.",
+  },
+  {
+    id: 7,
+    question: "Can beginners still use MeritOne if payments exist?",
+    answer:
+      "Yes. Beginners can collaborate through skill exchange without paying. Payments are optional and do not block access to collaboration.",
+  },
+  {
+    id: 8,
+    question: "How does tipping work?",
+    answer:
+      "After collaboration, users can optionally tip others to appreciate effort or contribution. Tips are voluntary and not required to participate.",
   },
 ];
 
@@ -57,13 +76,7 @@ const FAQSection: React.FC = () => {
             <div className="flex justify-center lg:justify-start">
               <div className="w-20 h-20 bg-green-400/10 rounded-2xl flex items-center justify-center border border-green-400/20">
                 <div className="w-12 h-12 bg-green-400 rounded-xl flex items-center justify-center">
-                  <svg
-                    className="w-6 h-6 text-black"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-                  </svg>
+                  <HelpCircle className="w-7 h-7 text-black stroke-[2.5px]" />
                 </div>
               </div>
             </div>
@@ -80,9 +93,6 @@ const FAQSection: React.FC = () => {
                 response.
               </p>
 
-              <Button className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-black transition-all duration-300 px-8 py-3 rounded-lg font-semibold">
-                Book a Call →
-              </Button>
             </div>
           </div>
 

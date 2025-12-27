@@ -4,49 +4,41 @@ import { cn } from "@/lib/utils";
 const services = [
   {
     id: 1,
-    title: "Skill Exchange Optimization",
+    title: "Skill Exchange",
     description:
-      "Climb to the top of skill rankings and attract more trading opportunities with our proven skill matching strategies.",
-    highlighted: false,
+      "Form direct skill trades with others to get work done without money.",
+    highlighted: true,
     hoverType: "green",
   },
   {
     id: 2,
-    title: "Project-Based Trading",
+    title: "Project-Based Trades",
     description:
-      "Maximize your project success with targeted skill exchanges that deliver high-quality results and collaborations",
-    highlighted: true,
+      "Collaborate on real projects by exchanging complementary skills.",
+    highlighted: false,
     hoverType: "white",
   },
   {
     id: 3,
-    title: "Skill Network Marketing",
+    title: "Skill Visibility",
     description:
-      "Engage your audience and grow your skill presence on platforms like LinkedIn, GitHub, and Behance with our skill networking strategies",
+      "Show what you can do through posts, completed trades, and collaboration history.",
     highlighted: false,
     hoverType: "green",
   },
   {
-    id: 4,
-    title: "Mentorship Trading",
-    description:
-      "Exchange knowledge and expertise through structured mentorship programs that benefit both mentors and mentees",
-    highlighted: false,
-    hoverType: "white",
-  },
-  {
     id: 5,
-    title: "Creative Skills Exchange",
+    title: "Creative Collaboration",
     description:
-      "Trade design, writing, and creative services with other talented professionals to complete your projects",
+      "Exchange design, writing, and creative skills with others to complete real work.",
     highlighted: false,
     hoverType: "green",
   },
   {
     id: 6,
-    title: "Technical Skills Bartering",
+    title: "Technical Collaboration",
     description:
-      "Exchange programming, development, and technical expertise within our skilled community network",
+      "Work with developers and technical contributors through skill-based trades.",
     highlighted: false,
     hoverType: "white",
   },
@@ -104,20 +96,23 @@ const ServicesShowcase: React.FC = () => {
             )}
           >
             <div className="mb-4">
-              <span className="text-green-400 text-sm font-semibold tracking-wider animate-pulse">
-                ⚡ EXPERT SERVICES
+              <span className="text-green-400 text-sm font-semibold tracking-wider animate-pulse uppercase">
+                ⚡ Platform Capabilities
               </span>
             </div>
             <h2 className="text-4xl lg:text-5xl font-bold leading-tight">
-              Tailored Services for Your
+              Built for
               <br />
               <span className="text-green-400 bg-gradient-to-r from-green-400 to-green-600 bg-clip-text text-transparent animate-pulse">
-                Skill Growth
+                Skill-Driven Work
               </span>
             </h2>
+            <p className="text-gray-300 text-lg max-w-md leading-relaxed">
+              Everything on MeritOne is designed to turn skills into collaboration and experience.
+            </p>
             <div className="flex items-center mt-8 transform hover:scale-105 transition-transform duration-300">
-              <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center mr-4 shadow-lg shadow-green-400/20">
-                <span className="text-black font-bold text-lg">ST</span>
+              <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center mr-4 shadow-lg shadow-green-400/20 overflow-hidden">
+                <img src="/meritone-logo.png" alt="MeritOne" className="w-9 h-9 object-contain" />
               </div>
               <div>
                 <div className="text-white font-semibold">MeritOne</div>
@@ -168,18 +163,7 @@ const ServicesShowcase: React.FC = () => {
                   )}
                 />
 
-                {/* Content */}
-                <div className="relative z-10 flex items-start space-x-4">
-                  <div
-                    className={cn(
-                      "text-xl transition-all duration-300 group-hover:scale-110",
-                      service.hoverType === "green"
-                        ? "group-hover:text-green-400"
-                        : "group-hover:text-white",
-                    )}
-                  >
-                    ⚙️
-                  </div>
+                <div className="relative z-10">
                   <div className="flex-1">
                     <h3
                       className={cn(

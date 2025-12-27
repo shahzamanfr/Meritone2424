@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/contexts/ProfileContext";
+import { PageLoader, ButtonLoader } from "@/components/ui/loading-spinner";
 
 type ExperienceLevel = "beginner" | "intermediate" | "advanced" | "expert";
 type Availability = "full_time" | "part_time" | "project_based";
@@ -23,7 +24,7 @@ interface ProfileData {
 
 const EditProfile: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, isEmailVerified } = useAuth();
+  const { isAuthenticated, isEmailVerified, loading: authLoading } = useAuth();
   const { profile, loading, hasProfile, updateProfile, uploadProfilePicture } = useProfile();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currentSkill, setCurrentSkill] = useState("");
@@ -43,6 +44,12 @@ const EditProfile: React.FC = () => {
   });
 
   useEffect(() => {
+    // Wait for BOTH auth and profile loading to complete
+    // This prevents race conditions on mobile where auth state hasn't loaded yet
+    if (authLoading || loading) {
+      return;
+    }
+
     // Check authentication and profile status
     if (!isAuthenticated) {
       navigate("/signin");
@@ -54,7 +61,7 @@ const EditProfile: React.FC = () => {
       return;
     }
 
-    if (!loading && !hasProfile) {
+    if (!hasProfile) {
       navigate("/create-profile");
       return;
     }
@@ -74,7 +81,7 @@ const EditProfile: React.FC = () => {
         topSkills: profile.top_skills || [],
       });
     }
-  }, [isAuthenticated, isEmailVerified, hasProfile, loading, profile]);
+  }, [isAuthenticated, isEmailVerified, hasProfile, loading, authLoading, profile, navigate]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -124,17 +131,22 @@ const EditProfile: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('[EditProfile] handleSubmit called');
 
     // Basic validation
     if (!profileData.name.trim()) {
+      console.log('[EditProfile] Validation failed: Name is required');
       setSuccessMessage('Name is required');
       return;
     }
 
     if (profileData.skillsOffered.length === 0) {
+      console.log('[EditProfile] Validation failed: At least one skill is required');
       setSuccessMessage('At least one skill is required');
       return;
     }
+
+    console.log('[EditProfile] Validation passed, starting update');
 
     try {
       setIsSubmitting(true);
@@ -142,11 +154,13 @@ const EditProfile: React.FC = () => {
       // Handle profile picture update if changed
       let profilePictureUrl = profile?.profile_picture;
       if (profileData.profilePicture !== profile?.profile_picture) {
+        console.log('[EditProfile] Profile picture changed');
         if (profileData.profilePicture === "") {
           // User wants to remove the profile picture
           profilePictureUrl = null;
         } else if (profileData.profilePicture.startsWith('data:')) {
           // Check if it's a new file (starts with 'data:')
+          console.log('[EditProfile] Uploading new profile picture');
 
           try {
             // Convert base64 to file and upload
@@ -156,14 +170,15 @@ const EditProfile: React.FC = () => {
 
             const { url, error: uploadError } = await uploadProfilePicture(file);
             if (uploadError) {
-              console.error('Failed to upload profile picture:', uploadError);
+              console.error('[EditProfile] Failed to upload profile picture:', uploadError);
               setSuccessMessage(`Failed to upload profile picture: ${uploadError}`);
               return;
             }
 
             profilePictureUrl = url;
+            console.log('[EditProfile] Profile picture uploaded successfully:', url);
           } catch (uploadError) {
-            console.error('Error during profile picture upload:', uploadError);
+            console.error('[EditProfile] Error during profile picture upload:', uploadError);
             setSuccessMessage(`Error uploading profile picture: ${uploadError}`);
             return;
           }
@@ -183,16 +198,21 @@ const EditProfile: React.FC = () => {
         top_skills: profileData.skillsOffered.slice(0, 3), // First 3 skills as top skills
       };
 
+      console.log('[EditProfile] Calling updateProfile with data:', updateData);
+
       // Use the updateProfile function from the context
       const { error, success } = await updateProfile(updateData);
 
+      console.log('[EditProfile] updateProfile returned:', { error, success });
+
       if (error) {
-        console.error('Failed to update profile:', error);
+        console.error('[EditProfile] Failed to update profile:', error);
         setSuccessMessage(`Failed to update profile: ${error}`);
         return;
       }
 
       if (success) {
+        console.log('[EditProfile] Profile updated successfully!');
         setSuccessMessage('Profile updated successfully! Redirecting...');
         // Wait a moment to show the success message, then navigate
         setTimeout(() => {
@@ -200,23 +220,17 @@ const EditProfile: React.FC = () => {
         }, 1500);
       }
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error('[EditProfile] Error updating profile:', error);
       setSuccessMessage('An error occurred while updating your profile');
     } finally {
       setIsSubmitting(false);
+      console.log('[EditProfile] handleSubmit completed');
     }
   };
 
   // Show loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading profile...</p>
-        </div>
-      </div>
-    );
+  if (authLoading || loading) {
+    return <PageLoader text="Loading profile..." />;
   }
 
   // Return early if no profile
@@ -277,7 +291,7 @@ const EditProfile: React.FC = () => {
                 <img
                   src={
                     profileData.profilePicture ||
-                    "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
+                    ""
                   }
                   alt="Profile"
                   className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-gray-200 object-cover"
@@ -621,9 +635,9 @@ const EditProfile: React.FC = () => {
             >
               {isSubmitting ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  <span className="hidden sm:inline">Saving...</span>
-                  <span className="sm:hidden">Saving...</span>
+                  <ButtonLoader size="sm" />
+                  <span className="ml-2 hidden sm:inline">Saving...</span>
+                  <span className="ml-2 sm:hidden">Saving...</span>
                 </>
               ) : (
                 <>

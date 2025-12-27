@@ -95,7 +95,7 @@ class UnifiedMessagingService {
   }
 
   // Get messages for a conversation (OPTIMIZED - single query with JOIN)
-  async getMessages(conversationId: string, limit = 50, offset = 0): Promise<Message[]> {
+  async getMessages(conversationId: string, limit = 200, offset = 0): Promise<Message[]> {
     try {
       const { data, error } = await supabase.rpc('get_conversation_messages', {
         p_conversation_id: conversationId,
@@ -120,7 +120,7 @@ class UnifiedMessagingService {
           name: row.sender_name,
           profile_picture: row.sender_picture
         } : undefined
-      }));
+      })).reverse();
     } catch (error) {
       console.error('Error fetching messages:', error);
       return [];

@@ -23,8 +23,12 @@ import {
   Calendar,
   Search,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  Send
 } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { EmailVerificationNotice } from '@/components/EmailVerificationNotice';
 
 type Trade = TradeWithComments;
 
@@ -39,7 +43,7 @@ interface NewTradeData {
 
 const Trades: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, isEmailVerified } = useAuth();
   const { profile, hasProfile } = useProfile();
 
   const [activeView, setActiveView] = useState<'list' | 'new-trade'>('list');
@@ -84,6 +88,7 @@ const Trades: React.FC = () => {
     };
 
     loadTrades();
+    console.log('[Trades] Version 2.1 Loaded - Optimistic comments active');
 
     const subscription = TradesService.subscribeToTrades((updatedTrades) => {
       setTrades(updatedTrades);
@@ -207,53 +212,122 @@ const Trades: React.FC = () => {
   };
 
   const handleAddInlineComment = async (tradeId: string, e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    if (!isAuthenticated || !user || !isEmailVerified) return;
 
     const commentText = tradeCommentTexts[tradeId]?.trim();
     if (!commentText) return;
 
+    // Create optimistic comment
+    const newComment: any = {
+      id: Date.now().toString(),
+      user_id: user.id,
+      trade_id: tradeId,
+      content: commentText,
+      user_display_name: profile?.name || 'Anonymous User',
+      user_profile_picture: profile?.profile_picture || null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
     try {
       setIsSubmitting(true);
 
-      const newComment: Comment = {
-        id: Date.now().toString(),
-        author: profile?.name || 'Anonymous User',
-        text: commentText,
-        timestamp: new Date().toISOString(),
-        userId: user?.id || 'anonymous'
-      };
+      // Optimistically update the UI INSTANTLY
+      console.log('[Trades] Optimistically adding comment to state...');
+      setTrades(prev => {
+        const next = prev.map(t => {
+          if (t.id === tradeId) {
+            const updatedComments = [...(t.comments || []), newComment];
+            console.log(`[Trades] Match found. New comment count for ${tradeId}: ${updatedComments.length}`);
+            return { ...t, comments: updatedComments };
+          }
+          return t;
+        });
+        return next;
+      });
 
+      // Clear text immediately
+      setTradeCommentTexts(prev => ({ ...prev, [tradeId]: '' }));
+
+      console.log('[Trades] Sending to database...');
       const { error } = await TradesService.addComment(tradeId, newComment);
 
       if (error) {
-        setError(error);
+        console.error('Service error adding comment:', error);
+        setError(`Failed to add comment: ${error}`);
         return;
       }
 
-      // Refresh the specific trade
+      // Final refresh to sync with server
       const { data: refreshed } = await TradesService.getTradeById(tradeId);
       if (refreshed) {
         setTrades(prev => prev.map(t => t.id === refreshed.id ? refreshed : t));
+        console.log('Trade synced with server data');
       }
 
-      // Clear the comment text for this trade
-      setTradeCommentTexts(prev => ({ ...prev, [tradeId]: '' }));
       setError(null);
 
     } catch (err) {
-      setError('Failed to add comment');
-      console.error('Error adding comment:', err);
+      console.error('Unexpected error adding comment:', err);
+      setError('An unexpected error occurred while adding the comment');
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleCloseTrade = async (tradeId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    // Optimistic update
+    setTrades(prev => prev.map(t => t.id === tradeId ? { ...t, status: 'Closed' } : t));
+
+    try {
+      const { error } = await TradesService.updateTradeStatus(tradeId, 'Closed');
+      if (error) {
+        console.error('Error closing trade:', error);
+        // Revert on error
+        const { data } = await TradesService.getTradeById(tradeId);
+        if (data) {
+          setTrades(prev => prev.map(t => t.id === tradeId ? data : t));
+        }
+      }
+    } catch (err) {
+      console.error('Error in handleCloseTrade:', err);
+    }
+  };
+
+  const handleReopenTrade = async (tradeId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    // Optimistic update
+    setTrades(prev => prev.map(t => t.id === tradeId ? { ...t, status: 'Open' } : t));
+
+    try {
+      const { error } = await TradesService.updateTradeStatus(tradeId, 'Open');
+      if (error) {
+        console.error('Error reopening trade:', error);
+        // Revert on error
+        const { data } = await TradesService.getTradeById(tradeId);
+        if (data) {
+          setTrades(prev => prev.map(t => t.id === tradeId ? data : t));
+        }
+      }
+    } catch (err) {
+      console.error('Error in handleReopenTrade:', err);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Open': return 'bg-green-100 text-green-800';
-      case 'Closed': return 'bg-red-100 text-red-800';
-      case 'Assigned': return 'bg-purple-100 text-purple-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'Open': return 'bg-transparent text-slate-400 font-normal border-0 p-0 shadow-none pointer-events-none select-none';
+      case 'Closed': return 'bg-slate-100 text-slate-600 border-slate-200';
+      case 'Assigned': return 'bg-blue-50 text-blue-600 border-blue-100';
+      default: return 'bg-slate-50 text-slate-500 border-slate-100';
     }
   };
 
@@ -323,10 +397,7 @@ const Trades: React.FC = () => {
         )}
 
         {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
-            <p className="text-gray-500 mt-4">Loading trades...</p>
-          </div>
+          <LoadingSpinner size="lg" text="Loading trades..." />
         ) : filteredTrades.length === 0 ? (
           <div className="text-center py-12">
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No trades found</h3>
@@ -397,7 +468,7 @@ const Trades: React.FC = () => {
                       <p className="text-xs md:text-sm text-slate-600 line-clamp-2 mb-3">{trade.description}</p>
                     )}
 
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-slate-500">
+                    <div className="flex items-center justify-between gap-2 text-xs text-slate-500 mt-auto pt-2">
                       <div className="flex flex-wrap items-center gap-2 md:gap-3">
                         {trade.location && (
                           <div className="flex items-center gap-1">
@@ -412,18 +483,50 @@ const Trades: React.FC = () => {
                           </div>
                         )}
                       </div>
-                      {user?.id !== trade.user_id && (
-                        <Button
-                          size="sm"
-                          className="bg-green-700 hover:bg-green-800 text-white text-xs h-7 px-3 w-full sm:w-auto"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate('/chat', { state: { openWithUserId: trade.user_id } });
-                          }}
-                        >
-                          Message
-                        </Button>
-                      )}
+
+                      <div className="flex items-center gap-2">
+                        {/* Owner Actions: Close/Reopen Trade */}
+                        {user?.id === trade.user_id && (
+                          <>
+                            {trade.status === 'Open' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs px-3 rounded-full border border-red-100 bg-red-50/50 text-red-600 hover:bg-red-100 hover:border-red-200 transition-all duration-300"
+                                onClick={(e) => handleCloseTrade(trade.id, e)}
+                              >
+                                Close Trade
+                              </Button>
+                            )}
+                            {trade.status === 'Closed' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs px-3 rounded-full border border-green-100 bg-green-50/50 text-green-600 hover:bg-green-100 hover:border-green-200 transition-all duration-300"
+                                onClick={(e) => handleReopenTrade(trade.id, e)}
+                              >
+                                Re-open Trade
+                              </Button>
+                            )}
+                          </>
+                        )}
+
+                        {/* Non-Owner Actions: Message */}
+                        {user?.id !== trade.user_id && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="h-7 text-xs px-3 rounded-full flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all font-medium"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate('/messages', { state: { openWithUserId: trade.user_id } });
+                            }}
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            Message
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -448,79 +551,102 @@ const Trades: React.FC = () => {
                     </button>
 
                     {expandedTradeId === trade.id && (
-                      <div className="px-3 md:px-4 pb-3 space-y-3 bg-slate-50">
+                      <div className="px-4 pb-4 space-y-4 bg-slate-50/50">
                         {/* Comments List */}
-                        {trade.comments.length > 0 ? (
-                          <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                            {trade.comments.map((comment) => (
-                              <div key={comment.id} className="bg-white rounded-lg p-3 border border-slate-200">
-                                <div className="flex items-start gap-2">
-                                  <div className="w-8 h-8 rounded-full bg-green-700 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                                    {comment.author.charAt(0).toUpperCase()}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <span className="font-semibold text-sm text-slate-900">{comment.author}</span>
-                                      <span className="text-xs text-slate-500">
-                                        {formatDistanceToNow(new Date(comment.timestamp))} ago
+                        <div className="pt-3">
+                          {trade.comments.length > 0 ? (
+                            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+                              {trade.comments.map((comment) => (
+                                <div key={comment.id} className="flex gap-3">
+                                  <Avatar className="h-8 w-8 shrink-0 border border-slate-200">
+                                    <AvatarImage src={comment.user_profile_picture || undefined} />
+                                    <AvatarFallback className="text-[10px] bg-slate-100 text-slate-600 font-semibold">
+                                      {comment.user_display_name.charAt(0).toUpperCase()}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="flex-1 min-w-0 bg-white rounded-2xl px-3 py-2 border border-slate-100 shadow-sm">
+                                    <div className="flex items-center justify-between gap-2 mb-1">
+                                      <span className="font-semibold text-xs text-slate-900 truncate">{comment.user_display_name}</span>
+                                      <span className="text-[10px] text-slate-400 flex-shrink-0">
+                                        {formatDistanceToNow(new Date(comment.created_at))} ago
                                       </span>
+                                    </div>
+                                    <p className="text-sm text-slate-700 leading-relaxed">{comment.content}</p>
+                                    <div className="flex items-center gap-2 mt-1.5">
                                       {comment.status === 'accepted' && (
-                                        <Badge className="text-xs bg-green-100 text-green-800 border-0">
+                                        <Badge className="text-[10px] bg-green-50 text-green-700 border-green-100 h-4 px-1.5 font-medium">
                                           Accepted
                                         </Badge>
                                       )}
                                       {comment.status === 'rejected' && (
-                                        <Badge className="text-xs bg-red-100 text-red-800 border-0">
+                                        <Badge className="text-[10px] bg-red-50 text-red-700 border-red-100 h-4 px-1.5 font-medium">
                                           Rejected
                                         </Badge>
                                       )}
                                     </div>
-                                    <p className="text-sm text-slate-700">{comment.text}</p>
                                   </div>
                                 </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-6 text-slate-400">
-                            <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                            <p className="text-sm">No comments yet. Be the first to comment!</p>
-                          </div>
-                        )}
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-8 text-slate-400">
+                              <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                              <p className="text-xs">Zero comments yet. Start the conversation!</p>
+                            </div>
+                          )}
+                        </div>
 
                         {/* Add Comment Form */}
                         {isAuthenticated ? (
-                          <form
-                            onSubmit={(e) => handleAddInlineComment(trade.id, e)}
-                            className="pt-2"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <div className="flex gap-2">
-                              <Textarea
-                                value={tradeCommentTexts[trade.id] || ''}
-                                onChange={(e) => {
-                                  e.stopPropagation();
-                                  setTradeCommentTexts(prev => ({ ...prev, [trade.id]: e.target.value }));
-                                }}
-                                placeholder="Write a comment..."
-                                rows={2}
-                                className="flex-1 text-sm resize-none"
-                                onClick={(e) => e.stopPropagation()}
-                              />
-                              <Button
-                                type="submit"
-                                size="sm"
-                                disabled={isSubmitting || !tradeCommentTexts[trade.id]?.trim()}
-                                className="bg-green-700 hover:bg-green-800 text-white self-end"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {isSubmitting ? 'Posting...' : 'Post'}
-                              </Button>
+                          isEmailVerified ? (
+                            <form
+                              onSubmit={(e) => handleAddInlineComment(trade.id, e)}
+                              className="flex items-start gap-2 pt-1 pb-1"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Avatar className="h-8 w-8 shrink-0 border border-slate-200">
+                                <AvatarImage src={profile?.profile_picture || undefined} />
+                                <AvatarFallback className="text-[10px] bg-slate-100 text-slate-600 font-semibold">
+                                  {profile?.name?.charAt(0).toUpperCase() || 'U'}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 flex gap-2">
+                                <Textarea
+                                  value={tradeCommentTexts[trade.id] || ''}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    setTradeCommentTexts(prev => ({ ...prev, [trade.id]: e.target.value }));
+                                  }}
+                                  placeholder="Write a comment..."
+                                  rows={1}
+                                  className="flex-1 text-sm resize-none rounded-2xl bg-white border-slate-200 focus:ring-1 focus:ring-slate-300 min-h-[38px] py-2"
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                                <Button
+                                  type="submit"
+                                  size="sm"
+                                  disabled={isSubmitting || !tradeCommentTexts[trade.id]?.trim()}
+                                  className="bg-slate-900 hover:bg-black text-white rounded-full h-9 w-9 p-0 flex-shrink-0"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {isSubmitting ? (
+                                    <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                  ) : (
+                                    <Send className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </div>
+                            </form>
+                          ) : (
+                            <div className="pt-1 pb-1">
+                              <EmailVerificationNotice />
                             </div>
-                          </form>
+                          )
                         ) : (
-                          <div className="text-center py-3 text-sm text-slate-500">
-                            <a href="/login" className="text-green-700 hover:underline">Sign in</a> to comment
+                          <div className="text-center py-4 bg-white rounded-xl border border-slate-100">
+                            <p className="text-xs text-slate-500">
+                              <a href="/login" className="text-slate-900 font-semibold hover:underline">Log in</a> to join the conversation
+                            </p>
                           </div>
                         )}
                       </div>

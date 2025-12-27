@@ -59,7 +59,7 @@ export class UserSearchService {
         .select(
           'user_id, name, email, profile_picture, location, bio, skills_i_have, experience_level'
         )
-        .or(`name.ilike.%${sanitized}%,email.ilike.%${sanitized}%`)
+        .or(`name.ilike.%${sanitized}%,email.ilike.%${sanitized}%,bio.ilike.%${sanitized}%`)
         .neq('user_id', currentUserId)
         .order('name', { ascending: true })
         .limit(20);
@@ -75,9 +75,9 @@ export class UserSearchService {
       };
     } catch (error) {
       console.error('User search service error:', error);
-      return { 
-        success: false, 
-        error: 'Network error. Please check your connection and try again.' 
+      return {
+        success: false,
+        error: 'Network error. Please check your connection and try again.'
       };
     }
   }

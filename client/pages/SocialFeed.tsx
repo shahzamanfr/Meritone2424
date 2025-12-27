@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePosts, type Post } from "@/contexts/PostsContext";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/lib/supabase";
+import { PageLoader, LoadingSpinner } from "@/components/ui/loading-spinner";
 import {
   Heart,
   MessageSquare,
@@ -156,7 +157,7 @@ const SocialFeed: React.FC = () => {
       return (
         <img
           src={mediaUrl}
-          alt={`Post media ${index + 1}`}
+          alt={`Post media ${index + 1} `}
           loading="lazy"
           className="w-full max-h-96 object-cover cursor-pointer hover:opacity-95 transition-opacity"
           onClick={() => window.open(mediaUrl, '_blank')}
@@ -184,14 +185,7 @@ const SocialFeed: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p className="text-gray-600 font-medium">Loading your feed...</p>
-        </div>
-      </div>
-    );
+    return <PageLoader text="Loading your feed..." />;
   }
 
   return (
@@ -204,12 +198,13 @@ const SocialFeed: React.FC = () => {
             <div className="flex items-center space-x-2 sm:space-x-6 flex-1">
               <button
                 onClick={() => navigate("/")}
-                className="flex items-center space-x-2 sm:space-x-3 hover:bg-gray-100 px-2 sm:px-3 py-2 rounded-lg transition-colors"
+                className="hover:opacity-80 transition-opacity"
               >
-                <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-r from-green-600 to-green-700 rounded-lg flex items-center justify-center shadow-sm">
-                  <span className="text-white font-bold text-xs sm:text-sm">SO</span>
-                </div>
-                <span className="hidden sm:block text-lg sm:text-xl font-bold text-gray-900">MeritOne</span>
+                <img
+                  src="/meritone-logo.png"
+                  alt="MeritOne"
+                  className="h-10 sm:h-12 w-auto object-contain"
+                />
               </button>
 
               <div className="hidden md:block relative flex-1 max-w-md">
@@ -241,14 +236,6 @@ const SocialFeed: React.FC = () => {
                 </button>
               </div>
 
-              <div className="relative">
-                <button className="flex flex-col items-center p-2 sm:p-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors min-w-[48px] sm:min-w-[64px] relative">
-                  <Bell className="w-5 h-5 sm:w-6 sm:h-6" />
-                  <span className="text-xs mt-1 hidden lg:block">Notifications</span>
-                  <div className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></div>
-                </button>
-              </div>
-
               <div className="flex items-center space-x-2 sm:space-x-3 ml-2 sm:ml-6 pl-2 sm:pl-6 border-l border-gray-200">
                 <img
                   src={currentUserProfile?.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUserProfile?.name || 'S')}&background=0D8ABC&color=fff`}
@@ -259,19 +246,19 @@ const SocialFeed: React.FC = () => {
                 <Button
                   onClick={() => navigate("/create-post")}
                   size="sm"
-                  className="bg-gray-900 hover:bg-black text-white font-medium px-4 py-2 rounded-full shadow-md transition-all hover:scale-105 active:scale-95"
+                  className="bg-green-600 hover:bg-green-700 text-white font-medium px-4 sm:px-5 py-2 rounded-lg shadow-sm transition-all"
                 >
-                  <Plus className="w-5 h-5 sm:mr-2" />
+                  <Plus className="w-4 h-4 sm:mr-2" />
                   <span className="hidden sm:inline text-sm">Create Post</span>
                 </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+              </div >
+            </div >
+          </div >
+        </div >
+      </header >
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto py-6">
+      < div className="max-w-6xl mx-auto py-6" >
         <div className="flex gap-6 px-4 sm:px-6">
           {/* Left Sidebar */}
           <div className="hidden lg:block w-64 flex-shrink-0">
@@ -292,13 +279,13 @@ const SocialFeed: React.FC = () => {
 
               {/* Stats */}
               <div className="px-4 pb-4 space-y-2 text-sm border-t border-gray-100 pt-4">
-                <div className="flex justify-between items-center hover:bg-gray-50 px-2 py-1 rounded">
+                <div className="flex justify-between items-center px-2 py-1 rounded">
                   <span className="text-gray-600">Profile views</span>
-                  <span className="font-semibold text-green-600">24</span>
+                  <span className="font-semibold text-green-600">..</span>
                 </div>
-                <div className="flex justify-between items-center hover:bg-gray-50 px-2 py-1 rounded">
+                <div className="flex justify-between items-center px-2 py-1 rounded">
                   <span className="text-gray-600">Post impressions</span>
-                  <span className="font-semibold text-green-600">156</span>
+                  <span className="font-semibold text-green-600">..</span>
                 </div>
               </div>
             </div>
@@ -323,14 +310,14 @@ const SocialFeed: React.FC = () => {
               </div>
 
               <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
-                <div className="flex items-center space-x-4">
+                <div className="flex items-center gap-2">
                   <button
                     onClick={() => setSortBy('latest')}
                     className={cn(
-                      "px-3 py-2 rounded-full text-sm font-medium transition-colors",
+                      "px-4 py-2 rounded-lg text-sm font-medium transition-all border",
                       sortBy === 'latest'
-                        ? "bg-green-100 text-green-700"
-                        : "text-gray-600 hover:bg-gray-100"
+                        ? "bg-gray-900 text-white border-gray-900"
+                        : "bg-white text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                     )}
                   >
                     Recent
@@ -338,10 +325,10 @@ const SocialFeed: React.FC = () => {
                   <button
                     onClick={() => setSortBy('popular')}
                     className={cn(
-                      "px-3 py-2 rounded-full text-sm font-medium transition-colors",
+                      "px-4 py-2 rounded-lg text-sm font-medium transition-all border",
                       sortBy === 'popular'
-                        ? "bg-green-100 text-green-700"
-                        : "text-gray-600 hover:bg-gray-100"
+                        ? "bg-gray-900 text-white border-gray-900"
+                        : "bg-white text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                     )}
                   >
                     Popular
@@ -352,7 +339,7 @@ const SocialFeed: React.FC = () => {
                   <select
                     value={filterType}
                     onChange={(e) => setFilterType(e.target.value)}
-                    className="appearance-none pl-3 pr-8 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white text-sm"
+                    className="appearance-none pl-4 pr-10 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 bg-white text-sm font-medium text-gray-700 hover:border-gray-300 transition-all cursor-pointer"
                   >
                     <option value="all">All Posts</option>
                     <option value="skill_offer">Skill Offers</option>
@@ -394,19 +381,19 @@ const SocialFeed: React.FC = () => {
                   return (
                     <article
                       key={post.id}
-                      className="bg-white rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-200 overflow-hidden"
+                      className="bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-all overflow-hidden"
                     >
-                      {/* Post Header - More Spacious */}
-                      <div className="p-8 pb-6">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-start space-x-4 flex-1 min-w-0">
+                      {/* Post Header */}
+                      <div className="p-5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3 flex-1 min-w-0">
                             <img
                               src={
                                 post.user?.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.user?.name || 'A')}&background=random`
                               }
                               alt={post.user?.name || "User"}
                               loading="lazy"
-                              className="w-14 h-14 rounded-full object-cover flex-shrink-0 cursor-pointer hover:ring-4 hover:ring-green-100 transition-all"
+                              className="w-11 h-11 rounded-full object-cover flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-green-500 transition-all"
                               onClick={() => navigate(`/profile/${post.user_id}`)}
                               onError={(e) => {
                                 const name = post.user?.name || 'A';
@@ -414,48 +401,48 @@ const SocialFeed: React.FC = () => {
                               }}
                             />
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-3 mb-2">
+                              <div className="flex items-center gap-2 mb-1">
                                 <h3
-                                  className="font-semibold text-lg text-gray-900 cursor-pointer hover:text-green-600 transition-colors"
+                                  className="font-semibold text-[15px] text-gray-900 cursor-pointer hover:text-green-600 transition-colors truncate"
                                   onClick={() => navigate(`/profile/${post.user_id}`)}
                                 >
                                   {post.user?.name || "Anonymous User"}
                                 </h3>
-                                <span className="text-gray-300">•</span>
-                                <span className="text-sm text-gray-500">
+                                <span className="text-gray-300 hidden sm:inline">•</span>
+                                <span className="text-[13px] text-gray-500 hidden sm:inline">
                                   {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
                                 </span>
                               </div>
                               <div className="flex items-center gap-2">
-                                <div className={cn("inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border", postTypeInfo.bgColor)}>
-                                  <IconComponent className={cn("w-3.5 h-3.5", postTypeInfo.color)} />
+                                <div className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border", postTypeInfo.bgColor)}>
+                                  <IconComponent className={cn("w-3 h-3", postTypeInfo.color)} />
                                   <span className={postTypeInfo.color}>{postTypeInfo.label}</span>
                                 </div>
                               </div>
                             </div>
                           </div>
-                          <button className="text-gray-400 hover:text-gray-600 hover:bg-gray-50 p-2.5 rounded-full transition-colors flex-shrink-0">
+                          <button className="text-gray-400 hover:text-gray-600 hover:bg-gray-50 p-1.5 rounded-full transition-colors flex-shrink-0">
                             <MoreHorizontal className="w-5 h-5" />
                           </button>
                         </div>
                       </div>
 
-                      {/* Post Content - Generous Spacing */}
-                      <div className="px-8 pb-6 space-y-4">
+                      {/* Post Content */}
+                      <div className="px-5 pb-4 space-y-2.5">
                         {post.title && (
-                          <h4 className="font-semibold text-xl text-gray-900 leading-tight">{post.title}</h4>
+                          <h4 className="font-semibold text-[17px] text-gray-900 leading-snug">{post.title}</h4>
                         )}
-                        <p className="text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
+                        <p className="text-[15px] text-gray-700 leading-relaxed whitespace-pre-wrap">
                           {post.content}
                         </p>
                       </div>
 
                       {/* Post Media */}
                       {post.media_urls && post.media_urls.length > 0 && (
-                        <div className="mb-6">
+                        <div className="mb-4">
                           <div className="space-y-0">
                             {post.media_urls.map((mediaUrl, index) => (
-                              <div key={index} className="overflow-hidden">
+                              <div key={index} className="overflow-hidden max-h-96">
                                 {renderMediaPreview(mediaUrl, index)}
                               </div>
                             ))}
@@ -463,18 +450,18 @@ const SocialFeed: React.FC = () => {
                         </div>
                       )}
 
-                      {/* Skills Section - Clean & Spacious */}
+                      {/* Skills Section */}
                       {(post.skills_offered?.length > 0 || post.skills_needed?.length > 0) && (
-                        <div className="px-8 pb-6">
-                          <div className="bg-gray-50 rounded-xl p-6 space-y-5">
+                        <div className="px-5 pb-4">
+                          <div className="bg-gray-50 rounded-lg p-4 space-y-3.5">
                             {post.skills_offered?.length > 0 && (
                               <div>
-                                <h5 className="text-sm font-semibold text-gray-700 mb-3">Skills Offered</h5>
+                                <h5 className="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">💼 Offering</h5>
                                 <div className="flex flex-wrap gap-2">
                                   {post.skills_offered.map((skill, index) => (
                                     <span
                                       key={index}
-                                      className="inline-flex items-center px-4 py-2 bg-white text-gray-800 rounded-lg text-sm font-medium border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all"
+                                      className="inline-flex items-center px-3 py-1.5 bg-white text-gray-800 rounded-md text-sm font-medium border border-gray-200"
                                     >
                                       {skill}
                                     </span>
@@ -484,12 +471,12 @@ const SocialFeed: React.FC = () => {
                             )}
                             {post.skills_needed?.length > 0 && (
                               <div>
-                                <h5 className="text-sm font-semibold text-gray-700 mb-3">Looking For</h5>
+                                <h5 className="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">🔍 Looking For</h5>
                                 <div className="flex flex-wrap gap-2">
                                   {post.skills_needed.map((skill, index) => (
                                     <span
                                       key={index}
-                                      className="inline-flex items-center px-4 py-2 bg-white text-gray-800 rounded-lg text-sm font-medium border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all"
+                                      className="inline-flex items-center px-3 py-1.5 bg-white text-gray-800 rounded-md text-sm font-medium border border-gray-200"
                                     >
                                       {skill}
                                     </span>
@@ -501,24 +488,24 @@ const SocialFeed: React.FC = () => {
                         </div>
                       )}
 
-                      {/* Additional Info - Refined */}
+                      {/* Additional Info */}
                       {(post.experience_level || post.availability || post.deadline) && (
-                        <div className="px-8 pb-6">
+                        <div className="px-5 pb-4">
                           <div className="flex flex-wrap gap-2">
                             {post.experience_level && (
-                              <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-gray-50 text-gray-700">
+                              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-gray-50 text-gray-700">
                                 <Award className="w-4 h-4" />
                                 <span>{post.experience_level.charAt(0).toUpperCase() + post.experience_level.slice(1)}</span>
                               </div>
                             )}
                             {post.availability && (
-                              <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-gray-50 text-gray-700">
+                              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-gray-50 text-gray-700">
                                 <Clock className="w-4 h-4" />
                                 <span>{post.availability.replace('_', ' ').charAt(0).toUpperCase() + post.availability.replace('_', ' ').slice(1)}</span>
                               </div>
                             )}
                             {post.deadline && (
-                              <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-gray-50 text-gray-700">
+                              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-gray-50 text-gray-700">
                                 <Calendar className="w-4 h-4" />
                                 <span>Due {new Date(post.deadline).toLocaleDateString()}</span>
                               </div>
@@ -527,25 +514,25 @@ const SocialFeed: React.FC = () => {
                         </div>
                       )}
 
-                      {/* Likes Count - Clean */}
+                      {/* Likes Count */}
                       {
                         post.likes_count > 0 && (
-                          <div className="px-8 pb-4">
-                            <p className="text-sm font-semibold text-gray-900">
+                          <div className="px-5 pb-3">
+                            <p className="text-sm font-medium text-gray-700">
                               {post.likes_count} {post.likes_count === 1 ? 'like' : 'likes'}
                             </p>
                           </div>
                         )
                       }
 
-                      {/* Action Buttons - Spacious & Clean */}
-                      <div className="border-t border-gray-100 px-6 py-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center flex-1 gap-1">
+                      {/* Action Buttons */}
+                      <div className="border-t border-gray-100 px-3 py-1.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center flex-1">
                             <button
                               onClick={() => handleLike(post.id)}
                               className={cn(
-                                "flex items-center justify-center gap-2 px-5 py-3 rounded-xl hover:bg-gray-50 transition-all text-sm font-medium flex-1",
+                                "flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-all text-sm font-medium flex-1",
                                 post.isLiked
                                   ? "text-blue-600"
                                   : "text-gray-600 hover:text-blue-600"
@@ -559,12 +546,12 @@ const SocialFeed: React.FC = () => {
                                 const toggle = commentTogglesRef.current.get(post.id);
                                 if (toggle) toggle();
                               }}
-                              className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl hover:bg-gray-50 transition-all text-sm font-medium text-gray-600 hover:text-blue-600 flex-1"
+                              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-all text-sm font-medium text-gray-600 hover:text-green-600 flex-1"
                             >
                               <MessageSquare className="w-5 h-5" />
                               <span className="hidden sm:inline">Comment</span>
                             </button>
-                            <button className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl hover:bg-gray-50 transition-all text-sm font-medium text-gray-600 hover:text-green-600 flex-1">
+                            <button className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-all text-sm font-medium text-gray-600 hover:text-green-600 flex-1">
                               <Share2 className="w-5 h-5" />
                               <span className="hidden sm:inline">Share</span>
                             </button>
@@ -606,7 +593,7 @@ const SocialFeed: React.FC = () => {
             )}
           </div>
         </div>
-      </div>
+      </div >
     </div >
   );
 };

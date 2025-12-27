@@ -23,6 +23,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string) => {
     try {
+      // Clear any existing session first
+      await supabase.auth.signOut();
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,

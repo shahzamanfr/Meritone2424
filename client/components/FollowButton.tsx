@@ -61,7 +61,7 @@ export const FollowButton: React.FC<FollowButtonProps> = ({
     // Store original state for rollback
     const originalRelationship = { ...relationship };
     const newFollowingState = !relationship.isFollowing;
-    
+
     // Optimistic update
     setOptimisticState(newFollowingState);
     setLoading(true);
@@ -69,18 +69,18 @@ export const FollowButton: React.FC<FollowButtonProps> = ({
     // Optimistically update the relationship for immediate UI feedback
     const optimisticRelationship: FollowRelationship = {
       isFollowing: newFollowingState,
-      followerCount: newFollowingState 
-        ? relationship.followerCount + 1 
+      followerCount: newFollowingState
+        ? relationship.followerCount + 1
         : Math.max(0, relationship.followerCount - 1),
       followingCount: relationship.followingCount
     };
-    
+
     setRelationship(optimisticRelationship);
     onFollowChange?.(optimisticRelationship);
 
     try {
       const result: FollowResult = await FollowService.toggleFollow(targetUserId, relationship.isFollowing);
-      
+
       if (result.success) {
         // Update with actual server response
         const updatedRelationship: FollowRelationship = {
@@ -88,7 +88,7 @@ export const FollowButton: React.FC<FollowButtonProps> = ({
           followerCount: result.followerCount || relationship.followerCount,
           followingCount: result.followingCount || relationship.followingCount
         };
-        
+
         setRelationship(updatedRelationship);
         onFollowChange?.(updatedRelationship);
         setOptimisticState(null);
@@ -97,7 +97,7 @@ export const FollowButton: React.FC<FollowButtonProps> = ({
         setOptimisticState(null);
         setRelationship(originalRelationship);
         onFollowChange?.(originalRelationship);
-        
+
         console.error('Follow toggle failed:', result.error);
         // Show error message to user
         alert(`Failed to ${newFollowingState ? 'follow' : 'unfollow'} user: ${result.error}`);
@@ -107,7 +107,7 @@ export const FollowButton: React.FC<FollowButtonProps> = ({
       setOptimisticState(null);
       setRelationship(originalRelationship);
       onFollowChange?.(originalRelationship);
-      
+
       console.error('Follow toggle error:', error);
       alert(`Failed to ${newFollowingState ? 'follow' : 'unfollow'} user. Please try again.`);
     } finally {
@@ -140,8 +140,8 @@ export const FollowButton: React.FC<FollowButtonProps> = ({
         size={size}
         variant={isFollowing ? 'outline' : variant}
         className={cn(
-          'transition-all duration-200',
-          isFollowing && 'hover:bg-red-50 hover:text-red-600 hover:border-red-300',
+          'transition-all duration-200 rounded-md',
+          isFollowing && 'hover:bg-gray-100 hover:text-gray-900 hover:border-gray-400',
           className
         )}
       >
@@ -155,23 +155,23 @@ export const FollowButton: React.FC<FollowButtonProps> = ({
 
       {/* Unfollow confirmation dialog */}
       {showUnfollowDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-sm mx-4">
-            <h3 className="text-lg font-semibold mb-2">Unfollow {targetUserName || 'User'}?</h3>
-            <p className="text-gray-600 mb-4">
-              You won't see their posts in your feed anymore.
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-md p-6 max-w-sm mx-4 shadow-2xl border border-gray-200">
+            <h3 className="text-xl font-bold mb-2 text-gray-900">Unfollow {targetUserName || 'User'}?</h3>
+            <p className="text-gray-500 mb-6 text-sm leading-relaxed">
+              You won't see their updates in your feed anymore. This can be undone at any time.
             </p>
             <div className="flex space-x-3">
               <Button
                 variant="outline"
                 onClick={() => setShowUnfollowDialog(false)}
-                className="flex-1"
+                className="flex-1 rounded-md border-gray-300 hover:bg-gray-50"
               >
                 Cancel
               </Button>
               <Button
                 onClick={confirmUnfollow}
-                className="flex-1 bg-red-600 hover:bg-red-700"
+                className="flex-1 bg-gray-900 hover:bg-black text-white rounded-md transition-colors"
               >
                 Unfollow
               </Button>

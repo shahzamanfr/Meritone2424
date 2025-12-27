@@ -11,19 +11,20 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/contexts/ProfileContext';
 import Header from '@/components/Header';
-import { 
-  Award, 
-  Download, 
-  FileText, 
-  Star, 
-  CheckCircle, 
-  Plus, 
-  User, 
+import {
+  Award,
+  Download,
+  FileText,
+  Star,
+  CheckCircle,
+  Plus,
+  User,
   Calendar,
   Clock,
   Search,
   Trash2
 } from 'lucide-react';
+import { LoadingSpinner, ButtonLoader } from '@/components/ui/loading-spinner';
 
 // Types
 interface CompletionReport {
@@ -71,7 +72,7 @@ const Skills: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const { profile, hasProfile } = useProfile();
-  
+
   // State management
   const [activeView, setActiveView] = useState<'certificates' | 'reports' | 'create-report' | 'sample-certificate'>('certificates');
   const [reports, setReports] = useState<CompletionReport[]>([]);
@@ -81,7 +82,7 @@ const Skills: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
-  
+
   // Completion report form state
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [completionReport, setCompletionReport] = useState({
@@ -171,7 +172,7 @@ const Skills: React.FC = () => {
 
   const handleCreateReport = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!isAuthenticated) {
       alert('Please sign in to create a completion report');
       return;
@@ -184,7 +185,7 @@ const Skills: React.FC = () => {
 
     try {
       setIsSubmitting(true);
-      
+
       if (!completionReport.reportText.trim()) {
         setError('Please provide a completion report');
         return;
@@ -205,7 +206,7 @@ const Skills: React.FC = () => {
       };
 
       setReports(prev => [newReport, ...prev]);
-      
+
       setCompletionReport({
         reportText: '',
         deliverables: [''],
@@ -216,7 +217,7 @@ const Skills: React.FC = () => {
       setSelectedTrade(null);
       setActiveView('reports');
       setError(null);
-      
+
     } catch (err) {
       setError('Failed to create completion report');
       console.error('Error creating report:', err);
@@ -233,13 +234,13 @@ const Skills: React.FC = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
-      setCertificates(prev => prev.map(cert => 
-        cert.id === certificate.id 
+
+      setCertificates(prev => prev.map(cert =>
+        cert.id === certificate.id
           ? { ...cert, downloadCount: cert.downloadCount + 1 }
           : cert
       ));
-      
+
     } catch (err) {
       setError('Failed to download certificate');
       console.error('Error downloading certificate:', err);
@@ -258,7 +259,7 @@ const Skills: React.FC = () => {
   const renderCertificates = () => (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <Header />
-      
+
       <div className="max-w-6xl mx-auto py-8 px-4">
         {/* Page Header */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
@@ -297,10 +298,7 @@ const Skills: React.FC = () => {
 
         {/* Certificates List */}
         {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
-            <p className="text-gray-500 mt-4">Loading certificates...</p>
-          </div>
+          <LoadingSpinner size="lg" text="Loading certificates..." />
         ) : certificates.length === 0 ? (
           <div className="text-center py-12">
             <Award className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -320,7 +318,7 @@ const Skills: React.FC = () => {
           <div className="grid gap-6">
             {certificates.map((certificate) => {
               const report = reports.find(r => r.id === certificate.reportId);
-  return (
+              return (
                 <Card key={certificate.id} className="border border-gray-200 hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <div className="flex items-center justify-between">
@@ -404,7 +402,7 @@ const Skills: React.FC = () => {
   const renderCreateReport = () => (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <Header />
-      
+
       <div className="max-w-4xl mx-auto py-8 px-4">
         {/* Page Header */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
@@ -521,9 +519,9 @@ const Skills: React.FC = () => {
                       ))}
                       <Button
                         type="button"
-                        onClick={() => setCompletionReport(prev => ({ 
-                          ...prev, 
-                          deliverables: [...prev.deliverables, ''] 
+                        onClick={() => setCompletionReport(prev => ({
+                          ...prev,
+                          deliverables: [...prev.deliverables, '']
                         }))}
                         variant="outline"
                         size="sm"
@@ -570,9 +568,9 @@ const Skills: React.FC = () => {
                       ))}
                       <Button
                         type="button"
-                        onClick={() => setCompletionReport(prev => ({ 
-                          ...prev, 
-                          skillsDemonstrated: [...prev.skillsDemonstrated, ''] 
+                        onClick={() => setCompletionReport(prev => ({
+                          ...prev,
+                          skillsDemonstrated: [...prev.skillsDemonstrated, '']
                         }))}
                         variant="outline"
                         size="sm"
@@ -641,8 +639,8 @@ const Skills: React.FC = () => {
                     >
                       {isSubmitting ? (
                         <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          Creating...
+                          <ButtonLoader size="sm" />
+                          <span className="ml-2">Creating...</span>
                         </>
                       ) : (
                         'Create Report'
@@ -713,8 +711,8 @@ const Skills: React.FC = () => {
                 {/* Description */}
                 <div className="max-w-3xl mx-auto mb-12">
                   <p className="text-lg text-gray-700 leading-relaxed">
-                    This trade, identified as Transaction ID <span className="font-mono font-semibold">TRD-2024-001</span>, 
-                    exemplifies the core values of skill-sharing within our community. The professional exchange between 
+                    This trade, identified as Transaction ID <span className="font-mono font-semibold">TRD-2024-001</span>,
+                    exemplifies the core values of skill-sharing within our community. The professional exchange between
                     parties has contributed to mutual growth and the successful acquisition of new skills.
                   </p>
                 </div>
@@ -748,10 +746,10 @@ const Skills: React.FC = () => {
                 {/* Date */}
                 <div className="mt-8">
                   <p className="text-sm text-gray-500">
-                    Issued on {new Date().toLocaleDateString('en-US', { 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
+                    Issued on {new Date().toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
                     })}
                   </p>
                 </div>

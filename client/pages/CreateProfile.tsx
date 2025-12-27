@@ -26,7 +26,7 @@ type ProfileFormData = {
 
 export default function CreateProfile() {
   const navigate = useNavigate();
-  const { isAuthenticated, isEmailVerified, user } = useAuth();
+  const { isAuthenticated, isEmailVerified, user, loading: authLoading } = useAuth();
   const { createProfile, uploadProfilePicture, hasProfile } = useProfile();
 
   const [profileData, setProfileData] = useState<ProfileFormData>({
@@ -46,17 +46,38 @@ export default function CreateProfile() {
   const [profilePicturePreview, setProfilePicturePreview] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   // Redirect if not authenticated or already has profile
   useEffect(() => {
+    // Wait for auth loading to complete to prevent race conditions
+    if (authLoading) {
+      return;
+    }
+
     if (!isAuthenticated) {
       navigate("/signup");
     } else if (!isEmailVerified) {
       navigate("/");
     } else if (hasProfile) {
       navigate("/profile");
+    } else {
+      // User is authenticated, verified, and doesn't have a profile
+      setIsCheckingAuth(false);
     }
-  }, [isAuthenticated, isEmailVerified, hasProfile, navigate]);
+  }, [isAuthenticated, isEmailVerified, hasProfile, authLoading, navigate]);
+
+  // Don't render the form until we've verified authentication
+  if (authLoading || isCheckingAuth || !isAuthenticated || !isEmailVerified || hasProfile) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleSkillAdd = (type: 'have' | 'want') => {
     const skill = type === 'have' ? currentSkill : currentWantedSkill;
@@ -132,6 +153,7 @@ export default function CreateProfile() {
       // Create profile
       const profileResult = await createProfile({
         name: profileData.name,
+        email: user?.email || "",
         bio: profileData.bio,
         location: profileData.location,
         profile_picture: profilePictureUrl,
