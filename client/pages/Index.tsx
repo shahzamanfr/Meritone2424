@@ -125,19 +125,19 @@ export default function Index() {
           <div className="overflow-hidden whitespace-nowrap border-b border-gray-800 pb-6 mb-10">
             <div className="animate-slide-left inline-flex space-x-16 text-3xl lg:text-4xl font-bold opacity-30">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-500 drop-shadow-lg">
-                Meritone
+                MeritOne
               </span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-500 drop-shadow-lg">
-                SkillSwap
+                MeritOne
               </span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-500 drop-shadow-lg">
-                Code movie
+                MeritOne
               </span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-500 drop-shadow-lg">
-                WorkTrade
+                MeritOne
               </span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-500 drop-shadow-lg">
-                CollabHub
+                MeritOne
               </span>
             </div>
           </div>

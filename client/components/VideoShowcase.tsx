@@ -76,7 +76,7 @@ export default function VideoShowcase() {
             >
               <span className="text-primary animate-pulse">⚡</span>
               <span className="text-gray-300 font-semibold tracking-wider uppercase">
-                Experience Meritone
+                Experience MeritOne
               </span>
             </motion.div>
 
