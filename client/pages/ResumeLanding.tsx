@@ -66,7 +66,7 @@ export default function ResumeLandingPage() {
                 <div className="text-center mb-12 sm:mb-16">
                     <h1 className="text-3xl sm:text-4xl md:text-5xl font-semibold text-slate-900 mb-5 tracking-tight leading-tight">
                         Build Your Resume,{" "}
-                        <span className="block sm:inline">Find Skill Trades</span>
+                        <span className="block sm:inline">Find Meritone Trades</span>
                     </h1>
                     <p className="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-4">
                         Create your professional resume and let AI match you with relevant skill trading opportunities

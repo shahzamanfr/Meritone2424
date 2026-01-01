@@ -6,7 +6,7 @@ const services = [
     id: 1,
     title: "Skill Exchange",
     description:
-      "Form direct skill trades with others to get work done without money.",
+      "Form direct Meritone trades with others to get work done without money.",
     highlighted: true,
     hoverType: "green",
   },

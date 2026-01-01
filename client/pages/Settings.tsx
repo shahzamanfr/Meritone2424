@@ -38,18 +38,18 @@ export default function Settings() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="email">Email Address</Label>
-                  <Input 
-                    id="email" 
-                    type="email" 
+                  <Input
+                    id="email"
+                    type="email"
                     placeholder="your.email@example.com"
                     className="mt-1"
                   />
                 </div>
                 <div>
                   <Label htmlFor="phone">Phone Number</Label>
-                  <Input 
-                    id="phone" 
-                    type="tel" 
+                  <Input
+                    id="phone"
+                    type="tel"
                     placeholder="+1 (555) 123-4567"
                     className="mt-1"
                   />
@@ -57,8 +57,8 @@ export default function Settings() {
               </div>
               <div>
                 <Label htmlFor="bio">Bio</Label>
-                <Textarea 
-                  id="bio" 
+                <Textarea
+                  id="bio"
                   placeholder="Tell others about yourself..."
                   className="mt-1"
                   rows={3}
@@ -78,24 +78,24 @@ export default function Settings() {
                   <Label htmlFor="email-notifications">Email Notifications</Label>
                   <p className="text-sm text-gray-500">Receive notifications via email</p>
                 </div>
-                <Switch 
+                <Switch
                   id="email-notifications"
                   checked={notifications.email}
-                  onCheckedChange={(checked) => 
+                  onCheckedChange={(checked) =>
                     setNotifications(prev => ({ ...prev, email: checked }))
                   }
                 />
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <div>
                   <Label htmlFor="push-notifications">Push Notifications</Label>
                   <p className="text-sm text-gray-500">Receive push notifications in browser</p>
                 </div>
-                <Switch 
+                <Switch
                   id="push-notifications"
                   checked={notifications.push}
-                  onCheckedChange={(checked) => 
+                  onCheckedChange={(checked) =>
                     setNotifications(prev => ({ ...prev, push: checked }))
                   }
                 />
@@ -106,10 +106,10 @@ export default function Settings() {
                   <Label htmlFor="message-notifications">New Messages</Label>
                   <p className="text-sm text-gray-500">Get notified of new messages</p>
                 </div>
-                <Switch 
+                <Switch
                   id="message-notifications"
                   checked={notifications.messages}
-                  onCheckedChange={(checked) => 
+                  onCheckedChange={(checked) =>
                     setNotifications(prev => ({ ...prev, messages: checked }))
                   }
                 />
@@ -118,12 +118,12 @@ export default function Settings() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label htmlFor="trade-notifications">Trade Requests</Label>
-                  <p className="text-sm text-gray-500">Get notified of skill trade requests</p>
+                  <p className="text-sm text-gray-500">Get notified of Meritone requests</p>
                 </div>
-                <Switch 
+                <Switch
                   id="trade-notifications"
                   checked={notifications.trades}
-                  onCheckedChange={(checked) => 
+                  onCheckedChange={(checked) =>
                     setNotifications(prev => ({ ...prev, trades: checked }))
                   }
                 />
@@ -142,10 +142,10 @@ export default function Settings() {
                   <Label htmlFor="profile-public">Public Profile</Label>
                   <p className="text-sm text-gray-500">Make your profile visible to all users</p>
                 </div>
-                <Switch 
+                <Switch
                   id="profile-public"
                   checked={privacy.profilePublic}
-                  onCheckedChange={(checked) => 
+                  onCheckedChange={(checked) =>
                     setPrivacy(prev => ({ ...prev, profilePublic: checked }))
                   }
                 />
@@ -156,10 +156,10 @@ export default function Settings() {
                   <Label htmlFor="show-email">Show Email</Label>
                   <p className="text-sm text-gray-500">Display email address on your profile</p>
                 </div>
-                <Switch 
+                <Switch
                   id="show-email"
                   checked={privacy.showEmail}
-                  onCheckedChange={(checked) => 
+                  onCheckedChange={(checked) =>
                     setPrivacy(prev => ({ ...prev, showEmail: checked }))
                   }
                 />
@@ -170,10 +170,10 @@ export default function Settings() {
                   <Label htmlFor="show-location">Show Location</Label>
                   <p className="text-sm text-gray-500">Display your location on your profile</p>
                 </div>
-                <Switch 
+                <Switch
                   id="show-location"
                   checked={privacy.showLocation}
-                  onCheckedChange={(checked) => 
+                  onCheckedChange={(checked) =>
                     setPrivacy(prev => ({ ...prev, showLocation: checked }))
                   }
                 />
@@ -189,27 +189,27 @@ export default function Settings() {
             <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="current-password">Current Password</Label>
-                <Input 
-                  id="current-password" 
-                  type="password" 
+                <Input
+                  id="current-password"
+                  type="password"
                   placeholder="Enter current password"
                   className="mt-1"
                 />
               </div>
               <div>
                 <Label htmlFor="new-password">New Password</Label>
-                <Input 
-                  id="new-password" 
-                  type="password" 
+                <Input
+                  id="new-password"
+                  type="password"
                   placeholder="Enter new password"
                   className="mt-1"
                 />
               </div>
               <div>
                 <Label htmlFor="confirm-password">Confirm New Password</Label>
-                <Input 
-                  id="confirm-password" 
-                  type="password" 
+                <Input
+                  id="confirm-password"
+                  type="password"
                   placeholder="Confirm new password"
                   className="mt-1"
                 />
