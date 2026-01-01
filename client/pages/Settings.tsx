@@ -118,7 +118,7 @@ export default function Settings() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label htmlFor="trade-notifications">Trade Requests</Label>
-                  <p className="text-sm text-gray-500">Get notified of Meritone requests</p>
+                  <p className="text-sm text-gray-500">Get notified of MeritOne requests</p>
                 </div>
                 <Switch
                   id="trade-notifications"

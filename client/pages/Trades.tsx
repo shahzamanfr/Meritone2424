@@ -339,7 +339,7 @@ const Trades: React.FC = () => {
         <div className="max-w-6xl mx-auto px-4 py-4 md:py-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Meritone Trades</h1>
+              <h1 className="text-2xl md:text-3xl font-bold text-slate-900">MeritOne Trades</h1>
               <Badge variant="outline" className="text-xs">
                 {filteredTrades.length}
               </Badge>

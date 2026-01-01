@@ -1,8 +1,8 @@
 -- ========================================================
--- 🚀 COMPLETE SUPABASE DATABASE SETUP SCRIPT (Meritone2424)
+-- 🚀 COMPLETE SUPABASE DATABASE SETUP SCRIPT (MeritOne)
 -- ========================================================
 -- This script contains the full schema, triggers, and functions 
--- for the Meritone project. Run this in the Supabase SQL Editor.
+-- for the MeritOne project. Run this in the Supabase SQL Editor.
 
 -- 1. EXTENSIONS
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
