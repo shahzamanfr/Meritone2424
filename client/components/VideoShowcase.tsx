@@ -70,13 +70,13 @@ export default function VideoShowcase() {
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           {/* Left Content */}
           <motion.div className="space-y-8" variants={itemVariants}>
-            <motion.div 
+            <motion.div
               className="flex items-center space-x-2 text-sm"
               variants={itemVariants}
             >
               <span className="text-primary animate-pulse">⚡</span>
               <span className="text-gray-300 font-semibold tracking-wider uppercase">
-                Experience WorkTrade
+                Experience Meritone
               </span>
             </motion.div>
 
@@ -90,13 +90,13 @@ export default function VideoShowcase() {
               </h2>
 
               <p className="text-xl text-gray-300 max-w-lg leading-relaxed">
-                See how our platform transforms the way professionals connect, 
-                collaborate, and trade skills. This is not just skill exchange - 
+                See how our platform transforms the way professionals connect,
+                collaborate, and trade skills. This is not just skill exchange -
                 this is the evolution of professional networking.
               </p>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               className="flex flex-col sm:flex-row gap-4"
               variants={itemVariants}
             >
@@ -111,7 +111,7 @@ export default function VideoShowcase() {
                 </span>
                 <span>{isPlaying ? "Pause Video" : "Watch Demo"}</span>
               </motion.button>
-              
+
               <motion.button
                 className="border-2 border-gray-600 hover:border-primary text-gray-300 hover:text-white px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 transform hover:scale-105"
                 whileHover={{ scale: 1.05 }}
@@ -122,7 +122,7 @@ export default function VideoShowcase() {
             </motion.div>
 
             {/* Feature Highlights */}
-            <motion.div 
+            <motion.div
               className="grid grid-cols-2 gap-6 pt-8"
               variants={itemVariants}
             >
@@ -138,7 +138,7 @@ export default function VideoShowcase() {
           </motion.div>
 
           {/* Right Video */}
-          <motion.div 
+          <motion.div
             className="relative"
             variants={videoVariants}
           >
@@ -146,7 +146,7 @@ export default function VideoShowcase() {
               {/* Video Container with Glow Effect */}
               <div className="relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-4 shadow-2xl shadow-primary/20 border border-gray-700">
                 <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-green-400/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500 opacity-50 group-hover:opacity-75"></div>
-                
+
                 <div className="relative bg-black rounded-xl overflow-hidden">
                   <video
                     ref={videoRef}
@@ -156,13 +156,13 @@ export default function VideoShowcase() {
                     onPlay={() => setIsPlaying(true)}
                     onPause={() => setIsPlaying(false)}
                   >
-                    <source 
-                      src="https://cdn.builder.io/o/assets%2F53e4fd32dd724f51a2e513f718e61215%2F36d2d06960074999aa6c1d75686fd1a5?alt=media&token=ed6ec426-e811-4392-8730-4b358233ff10&apiKey=53e4fd32dd724f51a2e513f718e61215" 
-                      type="video/mp4" 
+                    <source
+                      src="https://cdn.builder.io/o/assets%2F53e4fd32dd724f51a2e513f718e61215%2F36d2d06960074999aa6c1d75686fd1a5?alt=media&token=ed6ec426-e811-4392-8730-4b358233ff10&apiKey=53e4fd32dd724f51a2e513f718e61215"
+                      type="video/mp4"
                     />
                     Your browser does not support the video tag.
                   </video>
-                  
+
                   {/* Play Overlay */}
                   {!isPlaying && (
                     <motion.div

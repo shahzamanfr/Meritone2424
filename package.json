@@ -1,5 +1,5 @@
 {
-  "name": "fusion-starter",
+  "name": "meritone",
   "private": true,
   "type": "module",
   "pkg": {
@@ -21,7 +21,7 @@
     "typecheck": "tsc",
     "clean:build": "rimraf dist",
     "clean:caches": "rimraf node_modules/.vite .vite .cache",
-    "clean:locks": "rimraf package-lock.json skilltrade/SkillTrade/package-lock.json",
+    "clean:locks": "rimraf package-lock.json meritone/Meritone/package-lock.json",
     "clean:all": "pnpm run clean:build && pnpm run clean:caches && pnpm run clean:locks"
   },
   "dependencies": {
