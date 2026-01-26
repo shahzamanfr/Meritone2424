@@ -12,7 +12,7 @@ import { Slider } from "@/components/ui/slider";
 
 import { useEffect, useState, useRef } from "react";
 import { fetchMyResume, upsertMyResume, Resume } from "@/lib/resume.service";
-import { generateResumeWithAI, saveGeminiApiKey, getGeminiApiKey, AIResumeRequest, generateResumeImprovement, scanCompleteResume, ResumeScanResult } from "@/lib/ai-resume.service";
+import { generateResumeWithAI, saveGeminiApiKey, getGeminiApiKey, AIResumeRequest, generateResumeImprovement } from "@/lib/ai-resume.service";
 import { useNavigate } from "react-router-dom";
 import { Loader2, Sparkles, Settings, Printer, LayoutTemplate, Target, User, FileText, Briefcase, GraduationCap, Wrench, FolderGit2, Award, Globe, Heart, Search } from "lucide-react";
 import { useProfile } from "@/contexts/ProfileContext";
@@ -24,7 +24,7 @@ import { useReactToPrint } from 'react-to-print';
 import { getSmartTradeRecommendations, MatchedPost } from '@/lib/smart-trade.service';
 import { SmartTradeModal } from '@/components/SmartTradeModal';
 import { AIPromptDialog } from '@/components/AIPromptDialog';
-import ResumeScannerModal from '@/components/resume/ResumeScannerModal';
+
 import { EXAMPLE_RESUME } from '@/lib/example-resume';
 
 export default function EditResumePage() {
@@ -50,9 +50,7 @@ export default function EditResumePage() {
   const [smartTradeMatches, setSmartTradeMatches] = useState<MatchedPost[]>([]);
   const [loadingSmartTrades, setLoadingSmartTrades] = useState(false);
   const [showAIPromptDialog, setShowAIPromptDialog] = useState(false);
-  const [showScannerModal, setShowScannerModal] = useState(false);
-  const [scanResult, setScanResult] = useState<ResumeScanResult | null>(null);
-  const [scanning, setScanning] = useState(false);
+
 
   // Resume Score is now handled by ResumeScoreCard component
 
@@ -286,19 +284,7 @@ export default function EditResumePage() {
     }
   };
 
-  const handleScanResume = async () => {
-    setScanning(true);
-    try {
-      const result = await scanCompleteResume(resume);
-      setScanResult(result);
-      setShowScannerModal(true);
-    } catch (error) {
-      console.error('Error scanning resume:', error);
-      alert('Failed to scan resume. Please try again.');
-    } finally {
-      setScanning(false);
-    }
-  };
+
 
   const loadExampleResume = () => {
     if (confirm('This will replace your current resume with a professional example. Continue?')) {
@@ -372,21 +358,7 @@ export default function EditResumePage() {
               <span className="hidden sm:inline ml-1.5">PDF</span>
             </Button>
 
-            <Button
-              size="sm"
-              onClick={handleScanResume}
-              disabled={scanning || !resume.full_name}
-              className="text-xs sm:text-sm bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 px-2.5 sm:px-3 h-9 font-medium"
-            >
-              {scanning ? (
-                <Loader2 className="animate-spin" size={16} />
-              ) : (
-                <>
-                  <Search size={16} className="text-green-600" />
-                  <span className="hidden sm:inline ml-1.5">Scan</span>
-                </>
-              )}
-            </Button>
+
 
             <Button
               size="sm"
@@ -698,13 +670,7 @@ export default function EditResumePage() {
         onSubmit={handleAIPrompt}
       />
 
-      {/* Resume Scanner Modal */}
-      <ResumeScannerModal
-        isOpen={showScannerModal}
-        onClose={() => setShowScannerModal(false)}
-        scanResult={scanResult}
-        onRescan={handleScanResume}
-      />
+
     </div >
   );
 }
