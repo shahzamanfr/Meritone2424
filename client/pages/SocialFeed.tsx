@@ -28,8 +28,29 @@ import {
   Globe,
   Eye,
   Briefcase,
-  Bell
+  ArrowRight,
+  Trash2,
+  MoreVertical,
+  AlertCircle
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/components/ui/use-toast";
 import { MessageButton } from "@/components/messaging/MessageButton";
 import { useProfile } from "@/contexts/ProfileContext";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
@@ -38,13 +59,15 @@ const SocialFeed: React.FC = () => {
 
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
-  const { posts, loading, hasMore, loadMorePosts, likePost, unlikePost, refreshPosts } = usePosts();
+  const { posts, loading, hasMore, loadMorePosts, likePost, unlikePost, refreshPosts, deletePost } = usePosts();
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [filterType, setFilterType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const { profile: currentUserProfile } = useProfile();
   const [sortBy, setSortBy] = useState<'latest' | 'popular'>('latest');
   const commentTogglesRef = React.useRef<Map<string, () => void>>(new Map());
+  const [postToDelete, setPostToDelete] = useState<string | null>(null);
+  const { toast } = useToast();
 
 
   // Filter and sort posts
@@ -86,6 +109,27 @@ const SocialFeed: React.FC = () => {
       await unlikePost(postId);
     } else {
       await likePost(postId);
+    }
+  };
+
+
+  const handleDeletePost = async () => {
+    if (!postToDelete) return;
+
+    const { success, error } = await deletePost(postToDelete);
+
+    if (success) {
+      toast({
+        title: "Post deleted",
+        description: "Your post has been successfully deleted.",
+      });
+      setPostToDelete(null);
+    } else {
+      toast({
+        title: "Error",
+        description: error || "Failed to delete post",
+        variant: "destructive",
+      });
     }
   };
 
@@ -378,6 +422,7 @@ const SocialFeed: React.FC = () => {
                   const postTypeInfo = getPostTypeInfo(post.post_type);
                   const IconComponent = postTypeInfo.icon;
 
+
                   return (
                     <article
                       key={post.id}
@@ -421,9 +466,28 @@ const SocialFeed: React.FC = () => {
                               </div>
                             </div>
                           </div>
-                          <button className="text-gray-400 hover:text-gray-600 hover:bg-gray-50 p-1.5 rounded-full transition-colors flex-shrink-0">
-                            <MoreHorizontal className="w-5 h-5" />
-                          </button>
+                          {user?.id === post.user_id ? (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button className="text-gray-400 hover:text-gray-600 hover:bg-gray-50 p-1.5 rounded-full transition-colors flex-shrink-0">
+                                  <MoreHorizontal className="w-5 h-5" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuItem
+                                  className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+                                  onClick={() => setPostToDelete(post.id)}
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Delete Post
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          ) : (
+                            <button className="text-gray-400 hover:text-gray-600 hover:bg-gray-50 p-1.5 rounded-full transition-colors flex-shrink-0">
+                              <MoreHorizontal className="w-5 h-5" />
+                            </button>
+                          )}
                         </div>
                       </div>
 
@@ -438,81 +502,87 @@ const SocialFeed: React.FC = () => {
                       </div>
 
                       {/* Post Media */}
-                      {post.media_urls && post.media_urls.length > 0 && (
-                        <div className="mb-4">
-                          <div className="space-y-0">
-                            {post.media_urls.map((mediaUrl, index) => (
-                              <div key={index} className="overflow-hidden max-h-96">
-                                {renderMediaPreview(mediaUrl, index)}
-                              </div>
-                            ))}
+                      {
+                        post.media_urls && post.media_urls.length > 0 && (
+                          <div className="mb-4">
+                            <div className="space-y-0">
+                              {post.media_urls.map((mediaUrl, index) => (
+                                <div key={index} className="overflow-hidden max-h-96">
+                                  {renderMediaPreview(mediaUrl, index)}
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )
+                      }
 
                       {/* Skills Section */}
-                      {(post.skills_offered?.length > 0 || post.skills_needed?.length > 0) && (
-                        <div className="px-5 pb-4">
-                          <div className="bg-gray-50 rounded-lg p-4 space-y-3.5">
-                            {post.skills_offered?.length > 0 && (
-                              <div>
-                                <h5 className="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">💼 Offering</h5>
-                                <div className="flex flex-wrap gap-2">
-                                  {post.skills_offered.map((skill, index) => (
-                                    <span
-                                      key={index}
-                                      className="inline-flex items-center px-3 py-1.5 bg-white text-gray-800 rounded-md text-sm font-medium border border-gray-200"
-                                    >
-                                      {skill}
-                                    </span>
-                                  ))}
+                      {
+                        (post.skills_offered?.length > 0 || post.skills_needed?.length > 0) && (
+                          <div className="px-5 pb-4">
+                            <div className="bg-gray-50 rounded-lg p-4 space-y-3.5">
+                              {post.skills_offered?.length > 0 && (
+                                <div>
+                                  <h5 className="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">💼 Offering</h5>
+                                  <div className="flex flex-wrap gap-2">
+                                    {post.skills_offered.map((skill, index) => (
+                                      <span
+                                        key={index}
+                                        className="inline-flex items-center px-3 py-1.5 bg-white text-gray-800 rounded-md text-sm font-medium border border-gray-200"
+                                      >
+                                        {skill}
+                                      </span>
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
-                            {post.skills_needed?.length > 0 && (
-                              <div>
-                                <h5 className="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">🔍 Looking For</h5>
-                                <div className="flex flex-wrap gap-2">
-                                  {post.skills_needed.map((skill, index) => (
-                                    <span
-                                      key={index}
-                                      className="inline-flex items-center px-3 py-1.5 bg-white text-gray-800 rounded-md text-sm font-medium border border-gray-200"
-                                    >
-                                      {skill}
-                                    </span>
-                                  ))}
+                              )}
+                              {post.skills_needed?.length > 0 && (
+                                <div>
+                                  <h5 className="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">🔍 Looking For</h5>
+                                  <div className="flex flex-wrap gap-2">
+                                    {post.skills_needed.map((skill, index) => (
+                                      <span
+                                        key={index}
+                                        className="inline-flex items-center px-3 py-1.5 bg-white text-gray-800 rounded-md text-sm font-medium border border-gray-200"
+                                      >
+                                        {skill}
+                                      </span>
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )
+                      }
 
                       {/* Additional Info */}
-                      {(post.experience_level || post.availability || post.deadline) && (
-                        <div className="px-5 pb-4">
-                          <div className="flex flex-wrap gap-2">
-                            {post.experience_level && (
-                              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-gray-50 text-gray-700">
-                                <Award className="w-4 h-4" />
-                                <span>{post.experience_level.charAt(0).toUpperCase() + post.experience_level.slice(1)}</span>
-                              </div>
-                            )}
-                            {post.availability && (
-                              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-gray-50 text-gray-700">
-                                <Clock className="w-4 h-4" />
-                                <span>{post.availability.replace('_', ' ').charAt(0).toUpperCase() + post.availability.replace('_', ' ').slice(1)}</span>
-                              </div>
-                            )}
-                            {post.deadline && (
-                              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-gray-50 text-gray-700">
-                                <Calendar className="w-4 h-4" />
-                                <span>Due {new Date(post.deadline).toLocaleDateString()}</span>
-                              </div>
-                            )}
+                      {
+                        (post.experience_level || post.availability || post.deadline) && (
+                          <div className="px-5 pb-4">
+                            <div className="flex flex-wrap gap-2">
+                              {post.experience_level && (
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-gray-50 text-gray-700">
+                                  <Award className="w-4 h-4" />
+                                  <span>{post.experience_level.charAt(0).toUpperCase() + post.experience_level.slice(1)}</span>
+                                </div>
+                              )}
+                              {post.availability && (
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-gray-50 text-gray-700">
+                                  <Clock className="w-4 h-4" />
+                                  <span>{post.availability.replace('_', ' ').charAt(0).toUpperCase() + post.availability.replace('_', ' ').slice(1)}</span>
+                                </div>
+                              )}
+                              {post.deadline && (
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-gray-50 text-gray-700">
+                                  <Calendar className="w-4 h-4" />
+                                  <span>Due {new Date(post.deadline).toLocaleDateString()}</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )
+                      }
 
                       {/* Likes Count */}
                       {
@@ -593,7 +663,27 @@ const SocialFeed: React.FC = () => {
             )}
           </div>
         </div>
-      </div >
+      </div>
+
+      <AlertDialog open={!!postToDelete} onOpenChange={(open) => !open && setPostToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your post and remove it from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeletePost}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div >
   );
 };
