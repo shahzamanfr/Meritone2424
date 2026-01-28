@@ -14,7 +14,7 @@ import {
 } from "@/hooks/use-scroll-animation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/contexts/ProfileContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 
 export default function Index() {
@@ -313,11 +313,11 @@ export default function Index() {
               <div className="flex flex-col sm:flex-row gap-4 pt-2">
                 <Button
                   onClick={() => {
-                    if (isAuthenticated) {
-                      navigate("/feed");
-                    } else {
-                      navigate("/signup");
-                    }
+                    toast({
+                      title: "Coming Soon",
+                      description: "AI Matching is under construction!",
+                      duration: 3000
+                    });
                   }}
                   className="bg-green-600 hover:bg-green-700 text-white px-8 py-6 text-base font-semibold rounded-md transition-all duration-300 shadow-sm active:scale-95"
                 >
@@ -373,44 +373,44 @@ export default function Index() {
               </h3>
               <ul className="space-y-1.5 text-gray-700 text-sm font-medium">
                 <li>
-                  <a
-                    href="/skills"
+                  <Link
+                    to="/skills"
                     className="hover:text-primary transition-colors"
                   >
                     Browse Skills
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a
-                    href="/trades"
+                  <Link
+                    to="/trades"
                     className="hover:text-primary transition-colors"
                   >
                     Active Trades
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a
-                    href="/trades?view=new"
+                  <Link
+                    to="/trades?view=new"
                     className="hover:text-primary transition-colors"
                   >
                     Create a Trade
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a
-                    href="/feed"
+                  <Link
+                    to="/feed"
                     className="hover:text-primary transition-colors"
                   >
                     Community
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a
-                    href="/about"
+                  <Link
+                    to="/about"
                     className="hover:text-primary transition-colors"
                   >
                     About MeritOne
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>

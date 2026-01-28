@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/contexts/ProfileContext";
 import { usePosts } from "@/contexts/PostsContext";
 import { supabase } from "@/lib/supabase";
+import { ImageCarouselComponent } from "@/components/ImageCarousel";
 import FollowButton from "@/components/FollowButton";
 import FollowersModal from "@/components/FollowersModal";
 import FollowingModal from "@/components/FollowingModal";
@@ -22,18 +23,46 @@ import {
   Calendar,
   Clock,
   FileIcon,
-  ArrowLeft
+  ArrowLeft,
+  Trash2,
+  MoreVertical,
+  AlertCircle,
+  Briefcase,
+  Search,
+  Globe,
+  Settings
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/components/ui/use-toast";
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams(); // Get user ID from URL params
   const { isAuthenticated, isEmailVerified, user: authUser, loading: authLoading } = useAuth();
-  const { profile, loading, hasProfile } = useProfile();
-  const { getUserPosts } = usePosts();
+  const { profile, loading, hasProfile, deleteProfile } = useProfile();
+  const { getUserPosts, deletePost, refreshPosts } = usePosts();
   const [activeTab, setActiveTab] = useState<"posts" | "about" | "skills" | "followers" | "following">("posts");
   const [viewingUser, setViewingUser] = useState<any>(null);
   const [viewingUserPosts, setViewingUserPosts] = useState<any[]>([]);
+  const [showDeleteProfileDialog, setShowDeleteProfileDialog] = useState(false);
+  const [postToDelete, setPostToDelete] = useState<string | null>(null);
+  const { toast } = useToast();
   const [loadingViewingUser, setLoadingViewingUser] = useState(false);
   const [followRelationship, setFollowRelationship] = useState<FollowRelationship>({
     isFollowing: false,
@@ -296,6 +325,51 @@ const Profile: React.FC = () => {
     }
   }, [activeTab, isViewingOtherUser, targetUserId]);
 
+  const handleDeletePost = async () => {
+    if (!postToDelete) return;
+
+    // Optimistically remove the post from the UI
+    setViewingUserPosts(prev => prev.filter(p => p.id !== postToDelete));
+
+    const { success, error } = await deletePost(postToDelete);
+
+    if (success) {
+      toast({
+        title: "Post deleted",
+        description: "Your post has been successfully deleted.",
+      });
+    } else {
+      // Revert if failed (optional, but good UX)
+      // For now just show error
+      toast({
+        title: "Error",
+        description: error || "Failed to delete post",
+        variant: "destructive",
+      });
+      // Optionally re-fetch posts to restore state
+    }
+    setPostToDelete(null);
+  };
+
+  const handleDeleteProfile = async () => {
+    const { success, error } = await deleteProfile();
+
+    if (success) {
+      toast({
+        title: "Profile deleted",
+        description: "Your profile has been successfully deleted.",
+      });
+      navigate("/");
+    } else {
+      toast({
+        title: "Error",
+        description: error || "Failed to delete profile",
+        variant: "destructive",
+      });
+    }
+    setShowDeleteProfileDialog(false);
+  };
+
   // Set up comprehensive real-time subscriptions
   useEffect(() => {
     if (!authUser?.id || !targetUserId) return;
@@ -449,15 +523,34 @@ const Profile: React.FC = () => {
   const getPostTypeInfo = (type: string) => {
     switch (type) {
       case 'skill_offer':
-        return { label: 'Skill Offer', color: 'bg-green-100 text-green-800', icon: '💼' };
+        return {
+          label: 'Offering Skills',
+          color: 'text-green-700',
+          bgColor: 'bg-green-50 border-green-200',
+          icon: Briefcase
+        };
       case 'skill_request':
-        return { label: 'Skill Request', color: 'bg-blue-100 text-blue-800', icon: '🔍' };
-      case 'project':
-        return { label: 'Project', color: 'bg-purple-100 text-purple-800', icon: '🤝' };
+        return {
+          label: 'Seeking Skills',
+          color: 'text-blue-700',
+          bgColor: 'bg-blue-50 border-blue-200',
+          icon: Search
+        };
+      // Projects are now deprecated/merged into Skill Requests or General
       case 'general':
-        return { label: 'General', color: 'bg-gray-100 text-gray-800', icon: '📝' };
+        return {
+          label: 'General',
+          color: 'text-gray-700',
+          bgColor: 'bg-gray-50 border-gray-200',
+          icon: Globe
+        };
       default:
-        return { label: type, color: 'bg-gray-100 text-gray-800', icon: '📝' };
+        return {
+          label: type,
+          color: 'text-gray-700',
+          bgColor: 'bg-gray-100 border-gray-200',
+          icon: Globe
+        };
     }
   };
 
@@ -486,8 +579,7 @@ const Profile: React.FC = () => {
         <img
           src={mediaUrl}
           alt={`Post media ${index + 1}`}
-          className="w-full h-48 object-cover rounded-lg border border-gray-200 hover:opacity-90 transition-opacity cursor-pointer"
-          onClick={() => window.open(mediaUrl, '_blank')}
+          className="w-full h-48 object-cover rounded-lg border border-gray-200 hover:opacity-90 transition-opacity"
         />
       );
     } else if (mediaUrl.startsWith('data:video/')) {
@@ -712,15 +804,37 @@ const Profile: React.FC = () => {
                     </Button>
                   </>
                 ) : (
-                  <Button
-                    onClick={() => handleNavigation("/edit-profile")}
-                    className="bg-green-600 hover:bg-green-700 text-white shadow-sm"
-                  >
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                    Edit Profile
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={() => handleNavigation("/edit-profile")}
+                      className="bg-green-600 hover:bg-green-700 text-white shadow-sm"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      Edit Profile
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="icon" className="border-gray-200">
+                          <Settings className="w-5 h-5 text-gray-500" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleNavigation("/settings")}>
+                          Settings
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+                          onClick={() => setShowDeleteProfileDialog(true)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete Profile
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 )}
               </div>
             </div>
@@ -851,37 +965,59 @@ const Profile: React.FC = () => {
                         key={post.id}
                         className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden"
                       >
-                        {/* Post Header */}
                         <div className="p-8 border-b border-gray-100">
-                          <div className="flex items-start space-x-5">
-                            <img
-                              src={
-                                post.user?.profile_picture ||
-                                ""
-                              }
-                              alt={post.user?.name || "User"}
-                              className="w-14 h-14 rounded-full object-cover border-2 border-gray-200"
-                              onError={(e) => {
-                                e.currentTarget.src = "";
-                              }}
-                            />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center space-x-2 mb-1">
-                                <h3 className="font-bold text-lg text-gray-900 truncate">
-                                  {post.user?.name || "Anonymous User"}
-                                </h3>
-                                <span className={cn(
-                                  "px-2 py-1 text-xs font-medium rounded-full flex items-center space-x-1",
-                                  postTypeInfo.color
-                                )}>
-                                  <span>{postTypeInfo.icon}</span>
-                                  <span>{postTypeInfo.label}</span>
-                                </span>
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center space-x-5">
+                              <img
+                                src={
+                                  post.user?.profile_picture ||
+                                  ""
+                                }
+                                alt={post.user?.name || "User"}
+                                className="w-14 h-14 rounded-full object-cover border-2 border-gray-200"
+                                onError={(e) => {
+                                  e.currentTarget.src = "";
+                                }}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex flex-wrap items-center gap-2 mb-1">
+                                  <h3 className="font-bold text-lg text-gray-900 truncate max-w-[200px] sm:max-w-md">
+                                    {post.user?.name || "Anonymous User"}
+                                  </h3>
+                                  <span className={cn(
+                                    "px-2 py-1 text-xs font-medium rounded-full flex items-center",
+                                    postTypeInfo.bgColor,
+                                    postTypeInfo.color
+                                  )}>
+                                    <postTypeInfo.icon className="w-3 h-3 mr-1" />
+                                    <span>{postTypeInfo.label}</span>
+                                  </span>
+                                </div>
+                                <p className="text-sm text-gray-500">
+                                  {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+                                </p>
                               </div>
-                              <p className="text-sm text-gray-500">
-                                {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
-                              </p>
                             </div>
+
+                            {/* Delete Option for Post Owner */}
+                            {!isViewingOtherUser && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <button className="text-gray-400 hover:text-gray-600 hover:bg-gray-50 p-2 rounded-full transition-colors flex-shrink-0">
+                                    <MoreHorizontal className="w-5 h-5" />
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-48">
+                                  <DropdownMenuItem
+                                    className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+                                    onClick={() => setPostToDelete(post.id)}
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Delete Post
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
                           </div>
                         </div>
 
@@ -893,13 +1029,10 @@ const Profile: React.FC = () => {
                           {/* Post Media/Images */}
                           {post.media_urls && post.media_urls.length > 0 && (
                             <div className="mb-6">
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {post.media_urls.map((mediaUrl, index) => (
-                                  <div key={index} className="relative group">
-                                    {renderMediaPreview(mediaUrl, index)}
-                                  </div>
-                                ))}
-                              </div>
+                              <ImageCarouselComponent
+                                images={post.media_urls}
+                                renderMedia={renderMediaPreview}
+                              />
                             </div>
                           )}
 
@@ -1026,7 +1159,8 @@ const Profile: React.FC = () => {
                   </div>
                 )}
               </div>
-            )}
+            )
+            }
 
             {activeTab === "about" && (
               <div className="space-y-8">
@@ -1303,7 +1437,66 @@ const Profile: React.FC = () => {
           refreshAllProfileData();
         }}
       />
-    </div>
+      <AlertDialog open={!!postToDelete} onOpenChange={(open) => !open && setPostToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your post and remove it from our servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeletePost}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Profile Confirmation Dialog */}
+      <AlertDialog open={showDeleteProfileDialog} onOpenChange={setShowDeleteProfileDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Profile?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p className="text-red-600 font-medium">Warning: This action is permanent and cannot be undone.</p>
+              <p>This will permanently delete your:</p>
+              <ul className="list-disc list-inside text-sm">
+                <li>Profile information</li>
+                <li>Posts and comments</li>
+                <li>Trades and applications</li>
+                <li>Followers and following data</li>
+              </ul>
+              <p className="pt-2">Are you absolutely sure you want to delete your account?</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteProfile();
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  Deleting...
+                </>
+              ) : (
+                "Delete Completely"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div >
   );
 };
 

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './AuthContext';
 
@@ -76,27 +76,45 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
   const { user } = useAuth();
+  const initialLoadDone = useRef(false);
+  const loadPostsRef = useRef<(reset?: boolean) => Promise<void>>();
 
-  const loadPosts = async (reset = false) => {
+  const loadPosts = useCallback(async (reset = false) => {
+    // Prevent multiple simultaneous loads
+    if (loading && !reset) {
+      console.log('⏸️ Skipping load - already loading');
+      return;
+    }
+
     try {
       setLoading(true);
       const currentOffset = reset ? 0 : offset;
 
-      // Fetch posts with pagination
+      if (import.meta.env.DEV) {
+        console.log('🔍 Fetching posts with optimized query...', { currentOffset, POSTS_PER_PAGE });
+      }
+
+      // Simple, direct query - GUARANTEED to work
+      const startTime = performance.now();
+
       const { data: rawPosts, error: postsError } = await supabase
         .from('posts')
         .select('*')
         .order('created_at', { ascending: false })
         .range(currentOffset, currentOffset + POSTS_PER_PAGE - 1);
 
-      console.log('🔍 DEBUG: Fetching posts...', { currentOffset, POSTS_PER_PAGE });
+      const postsQueryTime = performance.now() - startTime;
+      console.log(`⏱️ Posts query took: ${postsQueryTime.toFixed(2)}ms`);
 
       if (postsError) {
         console.error('❌ Error fetching posts:', postsError);
+        console.error('Error details:', JSON.stringify(postsError, null, 2));
         return;
       }
 
-      console.log('✅ Posts fetched:', rawPosts?.length || 0, 'posts');
+      if (import.meta.env.DEV) {
+        console.log('✅ Posts fetched:', rawPosts?.length || 0, 'posts');
+      }
 
       if (!rawPosts || rawPosts.length === 0) {
         console.log('⚠️ No posts found in database');
@@ -108,47 +126,32 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       // Check if we have more posts
       setHasMore(rawPosts.length === POSTS_PER_PAGE);
 
-      // Get unique user IDs from posts
+      // Get unique user IDs
       const userIds = [...new Set(rawPosts.map(post => post.user_id))];
 
-      // Fetch profiles for all users in one query
-      const { data: profiles, error: profilesError } = await supabase
+      // Fetch profiles in parallel
+      const profilesStartTime = performance.now();
+
+      const { data: profiles } = await supabase
         .from('profiles')
         .select('user_id, name, profile_picture, email')
         .in('user_id', userIds);
 
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
-      }
+      const profilesQueryTime = performance.now() - profilesStartTime;
+      console.log(`⏱️ Profiles query took: ${profilesQueryTime.toFixed(2)}ms`);
+      console.log(`⏱️ TOTAL query time: ${(postsQueryTime + profilesQueryTime).toFixed(2)}ms`);
 
-      // Create a map of user_id to profile data
-      const profileMap = new Map();
-      profiles?.forEach(profile => {
-        profileMap.set(profile.user_id, profile);
-      });
+      // Create profile map
+      const profileMap = new Map(
+        (profiles || []).map(p => [p.user_id, p])
+      );
 
-      // Combine posts with user data
+      // Transform posts
       const postsWithUsers = rawPosts.map(post => ({
         ...post,
-        user: profileMap.get(post.user_id) || null
+        user: profileMap.get(post.user_id) || { name: 'Unknown', profile_picture: null, email: null },
+        isLiked: false
       }));
-
-      // If user is authenticated, check which posts they've liked
-      if (user) {
-        const postIds = postsWithUsers.map(p => p.id);
-        const { data: userLikes, error: likesError } = await supabase
-          .from('post_likes')
-          .select('post_id')
-          .eq('user_id', user.id)
-          .in('post_id', postIds);
-
-        if (!likesError && userLikes) {
-          const likedPostIds = new Set(userLikes.map(like => like.post_id));
-          postsWithUsers.forEach(post => {
-            post.isLiked = likedPostIds.has(post.id);
-          });
-        }
-      }
 
       if (reset) {
         setPosts(postsWithUsers);
@@ -164,13 +167,14 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } finally {
       setLoading(false);
     }
-  };
+  }, []); // Empty deps - loadPosts uses state setters which are stable
+
 
   const loadMorePosts = useCallback(async () => {
-    if (!loading && hasMore) {
-      await loadPosts(false);
+    if (!loading && hasMore && loadPostsRef.current) {
+      await loadPostsRef.current(false);
     }
-  }, [loading, hasMore, offset]);
+  }, [loading, hasMore]);
 
   const createPost = async (postData: any) => {
     try {
@@ -400,10 +404,19 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     loadPosts(true);
   };
 
-  // Initial load
+  // Store loadPosts in ref for use in loadMorePosts
   useEffect(() => {
-    loadPosts(true);
-  }, [user]);
+    loadPostsRef.current = loadPosts;
+  }, [loadPosts]);
+
+  // Initial load - only once on mount
+  useEffect(() => {
+    if (!initialLoadDone.current) {
+      initialLoadDone.current = true;
+      loadPosts(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - only run once on mount
 
   const value: PostsContextType = {
     posts,

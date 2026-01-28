@@ -3,6 +3,8 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CommentsSection } from "@/components/CommentsSection";
+import { ImageCarouselComponent } from "@/components/ImageCarousel";
+import { BackButton } from "@/components/BackButton";
 import { NotificationBell } from "@/components/NotificationBell";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePosts, type Post } from "@/contexts/PostsContext";
@@ -54,6 +56,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { MessageButton } from "@/components/messaging/MessageButton";
 import { useProfile } from "@/contexts/ProfileContext";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
+import { getAvatarUrl } from "@/lib/avatar-utils";
 
 const SocialFeed: React.FC = () => {
 
@@ -138,29 +141,23 @@ const SocialFeed: React.FC = () => {
       case 'skill_offer':
         return {
           label: 'Offering Skills',
-          color: 'text-gray-700',
-          bgColor: 'bg-gray-100 border-gray-200',
+          color: 'text-green-700',
+          bgColor: 'bg-green-50 border-green-200',
           icon: Briefcase
         };
       case 'skill_request':
         return {
           label: 'Seeking Skills',
-          color: 'text-gray-700',
-          bgColor: 'bg-gray-100 border-gray-200',
+          color: 'text-blue-700',
+          bgColor: 'bg-blue-50 border-blue-200',
           icon: Search
         };
-      case 'project':
-        return {
-          label: 'Project',
-          color: 'text-gray-700',
-          bgColor: 'bg-gray-100 border-gray-200',
-          icon: Star
-        };
+      // Projects are now deprecated/merged into Skill Requests or General
       case 'general':
         return {
           label: 'General',
           color: 'text-gray-700',
-          bgColor: 'bg-gray-100 border-gray-200',
+          bgColor: 'bg-gray-50 border-gray-200',
           icon: Globe
         };
       default:
@@ -201,10 +198,9 @@ const SocialFeed: React.FC = () => {
       return (
         <img
           src={mediaUrl}
-          alt={`Post media ${index + 1} `}
+          alt={`Post media ${index + 1}`}
           loading="lazy"
-          className="w-full max-h-96 object-cover cursor-pointer hover:opacity-95 transition-opacity"
-          onClick={() => window.open(mediaUrl, '_blank')}
+          className="w-full max-h-96 object-cover hover:opacity-95 transition-opacity"
         />
       );
     } else if (mediaUrl.startsWith('data:video/') || mediaUrl.match(/\.(mp4|webm|ogg)$/i)) {
@@ -228,9 +224,8 @@ const SocialFeed: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return <PageLoader text="Loading your feed..." />;
-  }
+  // Don't show full-page loader - it causes posts to disappear during refresh
+  // Instead, we show a loading spinner at the bottom of the feed
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -238,8 +233,9 @@ const SocialFeed: React.FC = () => {
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between px-3 sm:px-6 py-3">
-            {/* Left Section - Logo & Search */}
-            <div className="flex items-center space-x-2 sm:space-x-6 flex-1">
+            {/* Left Section - Back Button & Logo */}
+            <div className="flex items-center space-x-2 sm:space-x-4 flex-1">
+              <BackButton />
               <button
                 onClick={() => navigate("/")}
                 className="hover:opacity-80 transition-opacity"
@@ -281,12 +277,17 @@ const SocialFeed: React.FC = () => {
               </div>
 
               <div className="flex items-center space-x-2 sm:space-x-3 ml-2 sm:ml-6 pl-2 sm:pl-6 border-l border-gray-200">
-                <img
-                  src={currentUserProfile?.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUserProfile?.name || 'S')}&background=0D8ABC&color=fff`}
-                  alt="Profile"
-                  loading="lazy"
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-gray-200"
-                />
+                <button
+                  onClick={() => currentUserProfile?.user_id && navigate(`/profile/${currentUserProfile.user_id}`)}
+                  className="hover:opacity-80 transition-opacity focus:outline-none"
+                >
+                  <img
+                    src={getAvatarUrl(currentUserProfile?.profile_picture, currentUserProfile?.name)}
+                    alt="Profile"
+                    loading="lazy"
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-gray-200"
+                  />
+                </button>
                 <Button
                   onClick={() => navigate("/create-post")}
                   size="sm"
@@ -313,7 +314,7 @@ const SocialFeed: React.FC = () => {
               {/* Profile Info */}
               <div className="p-4 text-center -mt-8">
                 <img
-                  src={currentUserProfile?.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUserProfile?.name || 'S')}&background=0D8ABC&color=fff`}
+                  src={getAvatarUrl(currentUserProfile?.profile_picture, currentUserProfile?.name)}
                   alt="Profile"
                   className="w-16 h-16 rounded-full mx-auto mb-3 border-4 border-white shadow-sm"
                 />
@@ -325,11 +326,11 @@ const SocialFeed: React.FC = () => {
               <div className="px-4 pb-4 space-y-2 text-sm border-t border-gray-100 pt-4">
                 <div className="flex justify-between items-center px-2 py-1 rounded">
                   <span className="text-gray-600">Profile views</span>
-                  <span className="font-semibold text-green-600">..</span>
+                  <span className="font-semibold text-green-600">0</span>
                 </div>
                 <div className="flex justify-between items-center px-2 py-1 rounded">
                   <span className="text-gray-600">Post impressions</span>
-                  <span className="font-semibold text-green-600">..</span>
+                  <span className="font-semibold text-green-600">0</span>
                 </div>
               </div>
             </div>
@@ -341,7 +342,7 @@ const SocialFeed: React.FC = () => {
             <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4 shadow-sm">
               <div className="flex items-center space-x-3">
                 <img
-                  src={currentUserProfile?.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUserProfile?.name || 'S')}&background=0D8ABC&color=fff`}
+                  src={getAvatarUrl(currentUserProfile?.profile_picture, currentUserProfile?.name)}
                   alt="Profile"
                   className="w-12 h-12 rounded-full object-cover"
                 />
@@ -379,19 +380,26 @@ const SocialFeed: React.FC = () => {
                   </button>
                 </div>
 
-                <div className="relative">
-                  <select
-                    value={filterType}
-                    onChange={(e) => setFilterType(e.target.value)}
-                    className="appearance-none pl-4 pr-10 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 bg-white text-sm font-medium text-gray-700 hover:border-gray-300 transition-all cursor-pointer"
-                  >
-                    <option value="all">All Posts</option>
-                    <option value="skill_offer">Skill Offers</option>
-                    <option value="skill_request">Skill Requests</option>
-                    <option value="project">Projects</option>
-                    <option value="general">General</option>
-                  </select>
-                  <Filter className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                  {[
+                    { id: 'all', label: 'All Posts' },
+                    { id: 'skill_offer', label: 'Offering' },
+                    { id: 'skill_request', label: 'Seeking' },
+                    { id: 'general', label: 'General' }
+                  ].map((filter) => (
+                    <button
+                      key={filter.id}
+                      onClick={() => setFilterType(filter.id)}
+                      className={cn(
+                        "whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium transition-all border",
+                        filterType === filter.id
+                          ? "bg-gray-900 text-white border-gray-900"
+                          : "bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                      )}
+                    >
+                      {filter.label}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -399,22 +407,33 @@ const SocialFeed: React.FC = () => {
             {/* Posts Feed */}
             {filteredPosts.length === 0 ? (
               <div className="bg-white rounded-lg border border-gray-200 p-12 text-center shadow-sm">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Search className="w-8 h-8 text-gray-400" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">No posts to show</h3>
-                <p className="text-gray-600 mb-6">
-                  {searchQuery || filterType !== 'all'
-                    ? 'Try adjusting your search or filters'
-                    : 'Be the first to share something with your network!'
-                  }
-                </p>
-                <Button
-                  onClick={() => navigate("/create-post")}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                >
-                  Create Your First Post
-                </Button>
+                {loading ? (
+                  // Show loading spinner on initial load
+                  <div className="flex flex-col items-center">
+                    <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+                    <p className="text-gray-600">Loading posts...</p>
+                  </div>
+                ) : (
+                  // Show empty state when no posts exist
+                  <>
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Search className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">No posts to show</h3>
+                    <p className="text-gray-600 mb-6">
+                      {searchQuery || filterType !== 'all'
+                        ? 'Try adjusting your search or filters'
+                        : 'Be the first to share something with your network!'
+                      }
+                    </p>
+                    <Button
+                      onClick={() => navigate("/create-post")}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      Create Your First Post
+                    </Button>
+                  </>
+                )}
               </div>
             ) : (
               <div className="space-y-6">
@@ -433,17 +452,11 @@ const SocialFeed: React.FC = () => {
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-start gap-3 flex-1 min-w-0">
                             <img
-                              src={
-                                post.user?.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.user?.name || 'A')}&background=random`
-                              }
+                              src={getAvatarUrl(post.user?.profile_picture, post.user?.name)}
                               alt={post.user?.name || "User"}
                               loading="lazy"
                               className="w-11 h-11 rounded-full object-cover flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-green-500 transition-all"
                               onClick={() => navigate(`/profile/${post.user_id}`)}
-                              onError={(e) => {
-                                const name = post.user?.name || 'A';
-                                e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
-                              }}
                             />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
@@ -505,13 +518,10 @@ const SocialFeed: React.FC = () => {
                       {
                         post.media_urls && post.media_urls.length > 0 && (
                           <div className="mb-4">
-                            <div className="space-y-0">
-                              {post.media_urls.map((mediaUrl, index) => (
-                                <div key={index} className="overflow-hidden max-h-96">
-                                  {renderMediaPreview(mediaUrl, index)}
-                                </div>
-                              ))}
-                            </div>
+                            <ImageCarouselComponent
+                              images={post.media_urls}
+                              renderMedia={renderMediaPreview}
+                            />
                           </div>
                         )
                       }
@@ -639,6 +649,7 @@ const SocialFeed: React.FC = () => {
                       {/* Comments Section */}
                       <CommentsSection
                         postId={post.id}
+                        postOwnerId={post.user_id}
                         commentsCount={post.comments_count}
                         onToggleComments={(toggle) => {
                           commentTogglesRef.current.set(post.id, toggle);
