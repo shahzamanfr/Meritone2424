@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -88,7 +88,8 @@ const Trades: React.FC = () => {
     };
 
     loadTrades();
-    console.log('[Trades] Version 2.1 Loaded - Optimistic comments active');
+    loadTrades();
+
 
     const subscription = TradesService.subscribeToTrades((updatedTrades) => {
       setTrades(updatedTrades);
@@ -175,12 +176,18 @@ const Trades: React.FC = () => {
         return;
       }
 
+      // We guarded against !isAuthenticated earlier, so user and user.id must exist
+      if (!user?.id) {
+        setError('User ID missing. Please sign in again.');
+        return;
+      }
+
       const { data: createdTrade, error } = await TradesService.createTrade({
         title,
         description,
         skillOffered,
         skillWanted,
-        userId: user?.id || 'anonymous',
+        userId: user.id,
         userDisplayName: profile?.name || 'Anonymous User',
         location: newTrade.location?.trim(),
         deadline: newTrade.deadline
@@ -223,7 +230,7 @@ const Trades: React.FC = () => {
     if (!commentText) return;
 
     // Create optimistic comment
-    const newComment: any = {
+    const newComment: Comment = {
       id: Date.now().toString(),
       user_id: user.id,
       trade_id: tradeId,
@@ -238,12 +245,10 @@ const Trades: React.FC = () => {
       setIsSubmitting(true);
 
       // Optimistically update the UI INSTANTLY
-      console.log('[Trades] Optimistically adding comment to state...');
       setTrades(prev => {
         const next = prev.map(t => {
           if (t.id === tradeId) {
             const updatedComments = [...(t.comments || []), newComment];
-            console.log(`[Trades] Match found. New comment count for ${tradeId}: ${updatedComments.length}`);
             return { ...t, comments: updatedComments };
           }
           return t;
@@ -254,7 +259,6 @@ const Trades: React.FC = () => {
       // Clear text immediately
       setTradeCommentTexts(prev => ({ ...prev, [tradeId]: '' }));
 
-      console.log('[Trades] Sending to database...');
       const { error } = await TradesService.addComment(tradeId, newComment);
 
       if (error) {
@@ -267,7 +271,6 @@ const Trades: React.FC = () => {
       const { data: refreshed } = await TradesService.getTradeById(tradeId);
       if (refreshed) {
         setTrades(prev => prev.map(t => t.id === refreshed.id ? refreshed : t));
-        console.log('Trade synced with server data');
       }
 
       setError(null);
@@ -645,7 +648,7 @@ const Trades: React.FC = () => {
                         ) : (
                           <div className="text-center py-4 bg-white rounded-xl border border-slate-100">
                             <p className="text-xs text-slate-500">
-                              <a href="/login" className="text-slate-900 font-semibold hover:underline">Log in</a> to join the conversation
+                              <Link to="/signin" className="text-slate-900 font-semibold hover:underline">Log in</Link> to join the conversation
                             </p>
                           </div>
                         )}

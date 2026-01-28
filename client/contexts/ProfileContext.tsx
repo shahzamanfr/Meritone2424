@@ -15,13 +15,14 @@ type ProfileContextType = {
   createProfile: (profileData: Omit<Database['public']['Tables']['profiles']['Insert'], 'id' | 'user_id' | 'created_at' | 'updated_at'>) => Promise<{ error?: string; success?: boolean }>;
   updateProfile: (profileData: Partial<Database['public']['Tables']['profiles']['Update']>) => Promise<{ error?: string; success?: boolean }>;
   uploadProfilePicture: (file: File) => Promise<{ url?: string; error?: string }>;
+  deleteProfile: () => Promise<{ error?: string; success?: boolean }>;
   hasProfile: boolean;
 };
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
-  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const { user, isAuthenticated, loading: authLoading, signOut } = useAuth();
   const [profile, setProfile] = useState<UserProfile>(null);
   const [loading, setLoading] = useState(true);
 
@@ -51,6 +52,36 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Create profile error:', error);
       return { error: 'Failed to create profile' };
+    }
+  };
+
+  const deleteProfile = async () => {
+    try {
+      if (!user) {
+        return { error: 'User not authenticated' };
+      }
+
+      // 1. Delete the profile from public.profiles
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (profileError) {
+        console.error('Delete profile error:', profileError);
+        return { error: profileError.message };
+      }
+
+      // 2. Clear local state
+      setProfile(null);
+
+      // 3. Sign out the user
+      await signOut();
+
+      return { success: true };
+    } catch (error) {
+      console.error('Unexpected error deleting profile:', error);
+      return { error: 'Failed to delete profile' };
     }
   };
 
@@ -198,6 +229,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     createProfile,
     updateProfile,
     uploadProfilePicture,
+    deleteProfile,
     hasProfile: !!profile,
   }), [profile, loading]);
 

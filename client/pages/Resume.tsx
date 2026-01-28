@@ -5,8 +5,8 @@ export default function ResumePage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Always redirect to landing page
-    navigate("/resume/landing");
+    // Always redirect to landing page (replace to prevent back button loop)
+    navigate("/resume/landing", { replace: true });
   }, [navigate]);
 
   return null;

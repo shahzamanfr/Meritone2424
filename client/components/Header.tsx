@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Search, Menu, X, Rocket, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/contexts/ProfileContext";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { UserSearchDropdown } from "./UserSearchDropdown";
 import { UserSearchResult } from "@/lib/user-search.service";
 
@@ -77,13 +77,13 @@ export default function Header() {
                 </Button>
               )}
               <div className="flex-shrink-0">
-                <a href="/" className="flex items-center">
+                <Link to="/" className="flex items-center">
                   <img
                     src="/meritone-logo.png"
                     alt="MeritOne"
                     className="h-12 w-auto object-contain"
                   />
-                </a>
+                </Link>
               </div>
             </div>
 
@@ -102,12 +102,12 @@ export default function Header() {
               >
                 Skills Certifications
               </button>
-              <a href="/trades" className="text-sm font-medium text-gray-600 hover:text-green-600 transition-colors">Trades</a>
-              <a href="/resume" className="text-sm font-medium text-gray-600 hover:text-green-600 transition-colors">Resume</a>
+              <Link to="/trades" className="text-sm font-medium text-gray-600 hover:text-green-600 transition-colors">Trades</Link>
+              <Link to="/resume" className="text-sm font-medium text-gray-600 hover:text-green-600 transition-colors">Resume</Link>
               {isAuthenticated && (
                 <>
-                  <a href="/feed" className="text-sm font-medium text-gray-600 hover:text-green-600 transition-colors">Post</a>
-                  <a href="/messages" className="text-sm font-medium text-gray-600 hover:text-green-600 transition-colors">Messages</a>
+                  <Link to="/feed" className="text-sm font-medium text-gray-600 hover:text-green-600 transition-colors">Post</Link>
+                  <Link to="/messages" className="text-sm font-medium text-gray-600 hover:text-green-600 transition-colors">Messages</Link>
                 </>
               )}
             </div>
@@ -288,36 +288,36 @@ export default function Header() {
                 >
                   Skills Certifications
                 </button>
-                <a
-                  href="/trades"
+                <Link
+                  to="/trades"
                   className="block px-2 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Trades
-                </a>
-                <a
-                  href="/resume"
+                </Link>
+                <Link
+                  to="/resume"
                   className="block px-2 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Resume
-                </a>
+                </Link>
                 {isAuthenticated && (
                   <>
-                    <a
-                      href="/feed"
+                    <Link
+                      to="/feed"
                       className="block px-2 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       Post
-                    </a>
-                    <a
-                      href="/messages"
+                    </Link>
+                    <Link
+                      to="/messages"
                       className="block px-2 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       Messages
-                    </a>
+                    </Link>
                   </>
                 )}
               </div>
@@ -380,7 +380,7 @@ export default function Header() {
                   ) : (
                     <Button
                       onClick={() => {
-                        window.location.href = "/create-profile";
+                        navigate("/create-profile");
                         setIsMobileMenuOpen(false);
                       }}
                       className="w-full bg-primary hover:bg-primary/90 text-white"

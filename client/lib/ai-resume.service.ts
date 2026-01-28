@@ -676,16 +676,6 @@ export interface ResumeScanResult {
 export async function scanCompleteResume(resume: Partial<Resume>): Promise<ResumeScanResult> {
   const apiKey = import.meta.env.VITE_GROQ_API_KEY || "";
 
-  // DEBUG: Log API key status
-  console.log('🔍 ATS Scanner Debug:');
-  console.log('API Key exists:', !!apiKey);
-  console.log('API Key length:', apiKey.length);
-  if (!apiKey) {
-    console.warn('⚠️ NO GROK API KEY - Using fallback scoring (hardcoded)');
-  } else {
-    console.log('✅ Grok API key found - Will use AI scoring');
-  }
-
   // Build comprehensive resume text for analysis
   const resumeText = buildResumeText(resume);
 
@@ -794,7 +784,6 @@ Return ONLY valid JSON:
 BE STRICT. BE CRITICAL. BE REALISTIC. This is what real ATS systems do.`;
 
   try {
-    console.log('📡 Calling Grok API for ATS analysis...');
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {

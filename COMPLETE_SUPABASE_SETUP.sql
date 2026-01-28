@@ -198,6 +198,22 @@ CREATE INDEX IF NOT EXISTS idx_follows_following_id ON follows(following_id);
 CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON public.profiles(user_id);
 CREATE INDEX IF NOT EXISTS idx_trade_comments_trade_id ON public.trade_comments(trade_id);
 
+-- 🚀 CRITICAL PERFORMANCE INDEXES FOR POSTS
+-- These indexes dramatically improve query performance for the feed
+CREATE INDEX IF NOT EXISTS idx_posts_user_id ON public.posts(user_id);
+CREATE INDEX IF NOT EXISTS idx_posts_created_at ON public.posts(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_posts_user_created ON public.posts(user_id, created_at DESC);
+
+-- Post likes indexes for faster JOIN queries
+CREATE INDEX IF NOT EXISTS idx_post_likes_post_id ON public.post_likes(post_id);
+CREATE INDEX IF NOT EXISTS idx_post_likes_user_id ON public.post_likes(user_id);
+CREATE INDEX IF NOT EXISTS idx_post_likes_user_post ON public.post_likes(user_id, post_id);
+
+-- Post comments indexes for faster comment loading
+CREATE INDEX IF NOT EXISTS idx_post_comments_post_id ON public.post_comments(post_id);
+CREATE INDEX IF NOT EXISTS idx_post_comments_user_id ON public.post_comments(user_id);
+CREATE INDEX IF NOT EXISTS idx_post_comments_created_at ON public.post_comments(created_at DESC);
+
 -- 4. FUNCTIONS & TRIGGERS
 
 -- Updated At Column Trigger
