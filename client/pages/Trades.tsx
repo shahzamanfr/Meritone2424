@@ -360,12 +360,12 @@ const Trades: React.FC = () => {
     <div className="min-h-screen bg-slate-50">
       <Header />
 
-      <div className="bg-white border-b border-slate-200">
-        <div className="max-w-6xl mx-auto px-4 py-4 md:py-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl md:text-3xl font-bold text-slate-900">MeritOne Trades</h1>
-              <Badge variant="outline" className="text-xs">
+      <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
+        <div className="max-w-6xl mx-auto px-4 py-3 md:py-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center justify-between sm:justify-start gap-3">
+              <h1 className="text-xl md:text-2xl font-bold text-slate-900">MeritOne Trades</h1>
+              <Badge variant="outline" className="text-xs h-6">
                 {filteredTrades.length}
               </Badge>
             </div>
@@ -388,7 +388,7 @@ const Trades: React.FC = () => {
                 });
                 setActiveView('new-trade');
               }}
-              className="bg-green-700 hover:bg-green-800 text-white w-full sm:w-auto"
+              className="bg-green-700 hover:bg-green-800 text-white w-full sm:w-auto h-10 text-sm font-medium"
             >
               <Plus className="w-4 h-4 mr-2" />
               New Trade
@@ -397,7 +397,7 @@ const Trades: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto py-4 md:py-6 px-4">
+      <div className="max-w-6xl mx-auto py-4 px-3 md:px-4">
         <div className="bg-white rounded-lg border border-slate-200 p-3 md:p-4 mb-4 md:mb-6">
           <div className="flex flex-col gap-3">
             <div className="relative">
