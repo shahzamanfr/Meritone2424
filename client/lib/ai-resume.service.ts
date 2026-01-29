@@ -52,16 +52,10 @@ export interface AIResumeResponse {
 }
 
 export async function generateResumeWithAI(input: AIResumeRequest): Promise<AIResumeResponse> {
-  const apiKey = import.meta.env.VITE_GROQ_API_KEY || "";
-
-  if (!apiKey) {
-    throw new Error('Groq API key not found in environment variables.');
-  }
-
   // Try API first, with retry logic
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      return await callGroqAPIForResume(apiKey, input);
+      return await callGroqAPIForResume(input);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.log(`API attempt ${attempt} failed:`, error);
@@ -85,7 +79,6 @@ export async function generateResumeWithAI(input: AIResumeRequest): Promise<AIRe
 
 // Helper to improve specific text (e.g. a bullet point)
 export async function generateResumeImprovement(text: string, instruction: string = "Make it more professional"): Promise<string> {
-  const apiKey = import.meta.env.VITE_GROQ_API_KEY || ""; // Groq API Key from environment
 
   const prompt = `
 You are an expert resume writer and ATS optimization specialist.
@@ -157,7 +150,6 @@ Return ONLY the improved text, no explanations or quotes.
 
 // Generate professional bullet points for work experience
 export async function generateBulletPoints(role: string, company: string, description: string = ""): Promise<string[]> {
-  const apiKey = import.meta.env.VITE_GROQ_API_KEY || "";
 
   const prompt = `Generate 3-4 professional, ATS-optimized bullet points for this role:
 
@@ -223,7 +215,7 @@ Return ONLY the bullet points, one per line, without bullet symbols or numbers.`
   }
 }
 
-async function callGroqAPIForResume(apiKey: string, input: AIResumeRequest): Promise<AIResumeResponse> {
+async function callGroqAPIForResume(input: AIResumeRequest): Promise<AIResumeResponse> {
   const prompt = `
 You are an expert resume writer. Create a professional, detailed, and ATS-friendly resume.
 
@@ -477,8 +469,6 @@ export async function tailorResumeToJob(resume: Partial<Resume>, jobDescription:
   skillsToHighlight: string[];
   suggestedSummary?: string;
 }> {
-  const apiKey = import.meta.env.VITE_GROQ_API_KEY || "";
-  if (!apiKey) throw new Error("Groq API Key missing");
 
   // Extract current skills from resume
   const currentSkills = resume.technical_skills?.flatMap(s => s.items) || [];
@@ -614,7 +604,6 @@ export interface ResumeScanResult {
  * Analyzes entire resume and provides detailed suggestions
  */
 export async function scanCompleteResume(resume: Partial<Resume>): Promise<ResumeScanResult> {
-  const apiKey = import.meta.env.VITE_GROQ_API_KEY || "";
 
   // Build comprehensive resume text for analysis
   const resumeText = buildResumeText(resume);

@@ -84,6 +84,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await supabase.auth.signOut();
     } catch (error) {
       console.error('Sign out error:', error);
+    } finally {
+      // Force clear local state regardless of API result
+      // This handles 403/401 token expiry cases where API fails but user wants to logout
+      setSession(null);
+      setUser(null);
     }
   };
 
