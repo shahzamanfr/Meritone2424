@@ -45,7 +45,7 @@ export async function fetchMyResume(): Promise<Resume | null> {
       .from("resumes")
       .select("*")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
     if (error) {
       // If column doesn't exist (406 error), return null instead of throwing

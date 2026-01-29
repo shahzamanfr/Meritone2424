@@ -44,6 +44,7 @@ export interface Comment {
 interface PostsContextType {
   posts: Post[];
   loading: boolean;
+  error: string | null;
   hasMore: boolean;
   loadMorePosts: () => Promise<void>;
   createPost: (postData: any) => Promise<{ error: string | null; success: boolean }>;
@@ -55,6 +56,7 @@ interface PostsContextType {
   deleteComment: (commentId: string) => Promise<{ error: string | null; success: boolean }>;
   loadComments: (postId: string) => Promise<Comment[]>;
   refreshPosts: () => void;
+  retryLoad: () => void;
   getUserPosts: (userId: string) => Post[];
 }
 
@@ -73,9 +75,10 @@ const POSTS_PER_PAGE = 15;
 export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const initialLoadDone = useRef(false);
   const loadPostsRef = useRef<(reset?: boolean) => Promise<void>>();
 
@@ -88,10 +91,11 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     try {
       setLoading(true);
+      setError(null); // Clear previous errors
       const currentOffset = reset ? 0 : offset;
 
       if (import.meta.env.DEV) {
-        console.log('🔍 Fetching posts with optimized query...', { currentOffset, POSTS_PER_PAGE });
+        console.log('🔍 Fetching posts with optimized query...', { currentOffset, POSTS_PER_PAGE, userId: user?.id });
       }
 
       // Simple, direct query - GUARANTEED to work
@@ -107,8 +111,15 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.log(`⏱️ Posts query took: ${postsQueryTime.toFixed(2)}ms`);
 
       if (postsError) {
+        const errorMsg = postsError.message || 'Failed to load posts';
+        setError(errorMsg);
         console.error('❌ Error fetching posts:', postsError);
         console.error('Error details:', JSON.stringify(postsError, null, 2));
+
+        // Check if it's an RLS policy error
+        if (postsError.code === 'PGRST301' || postsError.message?.includes('policy')) {
+          setError('Unable to load posts. Please check your permissions or try signing in again.');
+        }
         return;
       }
 
@@ -146,12 +157,35 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         (profiles || []).map(p => [p.user_id, p])
       );
 
+      // Fetch user's likes if authenticated
+      let userLikes = new Set<string>();
+      console.log('🔍 Checking user for likes query:', { userId: user?.id, hasUser: !!user });
+      if (user?.id) {
+        const { data: likes, error: likesError } = await supabase
+          .from('post_likes')
+          .select('post_id')
+          .eq('user_id', user.id)
+          .in('post_id', rawPosts.map(p => p.id));
+
+        if (likesError) {
+          console.error('Error fetching user likes:', likesError);
+        }
+
+        if (likes) {
+          userLikes = new Set(likes.map(l => l.post_id));
+          console.log(`✅ Loaded ${likes.length} likes for current user`);
+        }
+      } else {
+        console.log('⚠️ No user authenticated, skipping likes query');
+      }
+
       // Transform posts
       const postsWithUsers = rawPosts.map(post => ({
         ...post,
         user: profileMap.get(post.user_id) || { name: 'Unknown', profile_picture: null, email: null },
-        isLiked: false
+        isLiked: userLikes.has(post.id)
       }));
+
 
       if (reset) {
         setPosts(postsWithUsers);
@@ -161,13 +195,13 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setOffset(currentOffset + POSTS_PER_PAGE);
       }
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error in loadPosts:', error);
-      }
+      const errorMsg = error instanceof Error ? error.message : 'An unexpected error occurred while loading posts';
+      setError(errorMsg);
+      console.error('Error in loadPosts:', error);
     } finally {
       setLoading(false);
     }
-  }, []); // Empty deps - loadPosts uses state setters which are stable
+  }, [loading, offset, user]);
 
 
   const loadMorePosts = useCallback(async () => {
@@ -199,9 +233,7 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await refreshPosts(); // Refresh to show new post at top
       return { error: null, success: true };
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error creating post:', error);
-      }
+      console.error('Error creating post:', error);
       return { error: 'Failed to create post', success: false };
     }
   };
@@ -250,20 +282,49 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         .insert([{ post_id: postId, user_id: user?.id }]);
 
       if (error) {
+        // If it's a duplicate key error (409), treat it as already liked
+        if (error.code === '23505' || error.message.includes('duplicate') || error.message.includes('unique')) {
+          console.log('Post already liked, syncing state from database');
+          // Fetch the actual post data to get correct count
+          const { data: postData } = await supabase
+            .from('posts')
+            .select('likes_count')
+            .eq('id', postId)
+            .single();
+
+          setPosts(prevPosts =>
+            prevPosts.map(post =>
+              post.id === postId
+                ? { ...post, isLiked: true, likes_count: postData?.likes_count ?? post.likes_count }
+                : post
+            )
+          );
+          return { error: null, success: true };
+        }
+        console.error('Error liking post:', error);
         return { error: error.message, success: false };
       }
 
-      // Update local state immediately for better UX
+      // Fetch the updated post to get the correct count from the database
+      // The trigger should have incremented it
+      const { data: postData } = await supabase
+        .from('posts')
+        .select('likes_count')
+        .eq('id', postId)
+        .single();
+
+      // Update local state with actual database count
       setPosts(prevPosts =>
         prevPosts.map(post =>
           post.id === postId
-            ? { ...post, isLiked: true, likes_count: post.likes_count + 1 }
+            ? { ...post, isLiked: true, likes_count: postData?.likes_count ?? post.likes_count + 1 }
             : post
         )
       );
 
       return { error: null, success: true };
     } catch (error) {
+      console.error('Failed to like post:', error);
       return { error: 'Failed to like post', success: false };
     }
   };
@@ -277,20 +338,29 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         .eq('user_id', user?.id);
 
       if (error) {
+        console.error('Error unliking post:', error);
         return { error: error.message, success: false };
       }
 
-      // Update local state immediately for better UX
+      // Fetch the updated post to get the correct count from the database
+      const { data: postData } = await supabase
+        .from('posts')
+        .select('likes_count')
+        .eq('id', postId)
+        .single();
+
+      // Update local state with actual database count
       setPosts(prevPosts =>
         prevPosts.map(post =>
           post.id === postId
-            ? { ...post, isLiked: false, likes_count: Math.max(0, post.likes_count - 1) }
+            ? { ...post, isLiked: false, likes_count: postData?.likes_count ?? Math.max(0, post.likes_count - 1) }
             : post
         )
       );
 
       return { error: null, success: true };
     } catch (error) {
+      console.error('Failed to unlike post:', error);
       return { error: 'Failed to unlike post', success: false };
     }
   };
@@ -358,9 +428,7 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         .order('created_at', { ascending: true });
 
       if (error) {
-        if (import.meta.env.DEV) {
-          console.error('Error loading comments:', error);
-        }
+        console.error('Error loading comments:', error);
         return [];
       }
 
@@ -387,9 +455,7 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         user: profileMap.get(comment.user_id) || undefined,
       }));
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error loading comments:', error);
-      }
+      console.error('Error loading comments:', error);
       return [];
     }
   };
@@ -409,18 +475,25 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     loadPostsRef.current = loadPosts;
   }, [loadPosts]);
 
-  // Initial load - only once on mount
+  // Initial load - wait for auth to initialize before loading posts
   useEffect(() => {
-    if (!initialLoadDone.current) {
+    if (!initialLoadDone.current && !authLoading) {
       initialLoadDone.current = true;
+      console.log('🚀 Auth initialized, loading posts...', { userId: user?.id });
       loadPosts(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty deps - only run once on mount
+  }, [authLoading, loadPosts, user?.id]);
+
+  const retryLoad = useCallback(() => {
+    setError(null);
+    initialLoadDone.current = false;
+    loadPosts(true);
+  }, [loadPosts]);
 
   const value: PostsContextType = {
     posts,
     loading,
+    error,
     hasMore,
     loadMorePosts,
     createPost,
@@ -432,6 +505,7 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     deleteComment,
     loadComments,
     refreshPosts,
+    retryLoad,
     getUserPosts
   };
 

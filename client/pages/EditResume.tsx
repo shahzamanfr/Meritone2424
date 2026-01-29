@@ -12,11 +12,13 @@ import { Slider } from "@/components/ui/slider";
 
 import { useEffect, useState, useRef } from "react";
 import { fetchMyResume, upsertMyResume, Resume } from "@/lib/resume.service";
-import { generateResumeWithAI, saveGeminiApiKey, getGeminiApiKey, AIResumeRequest, generateResumeImprovement } from "@/lib/ai-resume.service";
+import { generateResumeWithAI, saveGeminiApiKey, getGeminiApiKey, AIResumeRequest, generateResumeImprovement, scanCompleteResume, ResumeScanResult } from "@/lib/ai-resume.service";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Sparkles, Settings, Printer, LayoutTemplate, Target, User, FileText, Briefcase, GraduationCap, Wrench, FolderGit2, Award, Globe, Heart, Search } from "lucide-react";
+import { Loader2, Sparkles, Settings, Printer, LayoutTemplate, Target, User, FileText, Briefcase, GraduationCap, Wrench, FolderGit2, Award, Globe, Heart, Search, ClipboardCheck } from "lucide-react";
 import { useProfile } from "@/contexts/ProfileContext";
+import { useToast } from "@/hooks/use-toast";
 import { ResumePreview, ResumeTemplate } from "@/components/resume/ResumePreview";
+import ResumeScannerModal from "@/components/resume/ResumeScannerModal";
 import { ExperienceSection, EducationSection, SkillsSection, LanguagesSection, VolunteerSection, ProjectsSection } from "@/components/resume/ResumeFormSections";
 import { ResumeScoreCard } from "@/components/resume/ResumeScoreCard";
 import { JobTailoringDialog, JobTailoringSuggestions } from "@/components/resume/JobTailoringDialog";
@@ -29,6 +31,7 @@ import { EXAMPLE_RESUME } from '@/lib/example-resume';
 
 export default function EditResumePage() {
   const { profile, updateProfile } = useProfile();
+  const { toast } = useToast();
   const navigate = useNavigate();
 
   // State
@@ -51,15 +54,27 @@ export default function EditResumePage() {
   const [loadingSmartTrades, setLoadingSmartTrades] = useState(false);
   const [showAIPromptDialog, setShowAIPromptDialog] = useState(false);
 
+  // AI Scanner State
+  const [showScanner, setShowScanner] = useState(false);
+  const [scanResult, setScanResult] = useState<ResumeScanResult | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
 
-  // Resume Score is now handled by ResumeScoreCard component
 
-  // Print function that opens resume in new window with proper styling
-  const handlePrint = () => {
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Robust Print/PDF function using react-to-print
+  const handlePrint = useReactToPrint({
+    contentRef,
+    documentTitle: resume.full_name ? `${resume.full_name} - Resume` : 'Resume',
+    onAfterPrint: () => console.log('Print completed'),
+  });
+
+  // Legacy fallback for mobile browsers where window.print might be restricted
+  const handlePrintLegacy = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    const resumeElement = document.querySelector('[data-resume-preview]');
+    const resumeElement = contentRef.current;
     if (!resumeElement) return;
 
     // Get all stylesheets from current page
@@ -83,7 +98,7 @@ export default function EditResumePage() {
           <style>
             ${styles}
             @page { margin: 0.5in; size: letter; }
-            body { margin: 0; padding: 20px; background: white; }
+            body { margin: 0; padding: 0.5in; background: white; }
           </style>
         </head>
         <body>
@@ -99,6 +114,19 @@ export default function EditResumePage() {
       printWindow.print();
       printWindow.close();
     }, 500);
+  };
+
+  // Mobile-specific direct print handler
+  const handlePrintMobile = async () => {
+    // 1. Ensure preview is visible on mobile
+    if (window.innerWidth < 1024) {
+      setShowMobilePreview(true);
+      // Wait for re-render
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+
+    // 2. Trigger native print (CSS will handle hiding everything else)
+    window.print();
   };
 
   useEffect(() => {
@@ -187,18 +215,18 @@ export default function EditResumePage() {
   // AI Implementation - Improved text enhancement
   const improveText = async (text: string, path: string): Promise<string> => {
     if (!text) return text;
-    if (!apiKey) {
-      setShowApiKeyDialog(true);
-      return text;
-    }
 
     setImprovingText(true);
     try {
       const improved = await generateResumeImprovement(text, "Make it more professional, action-oriented, and concise.");
       return improved;
-    } catch (e) {
+    } catch (e: any) {
       console.error("AI Error:", e);
-      alert("AI improvement failed. Please try again.");
+      toast({
+        title: "AI Enhancement Failed",
+        description: e.message || "Failed to contact Groq API. Please try again.",
+        variant: "destructive",
+      });
       return text;
     } finally {
       setImprovingText(false);
@@ -219,10 +247,6 @@ export default function EditResumePage() {
   };
 
   const handleAIPrompt = async (prompt: string) => {
-    if (!apiKey) {
-      setShowApiKeyDialog(true);
-      return;
-    }
     try {
       const response = await generateResumeImprovement(
         JSON.stringify(resume),
@@ -276,11 +300,37 @@ export default function EditResumePage() {
       const aiReq: AIResumeRequest = { ...resume as any };
       const result = await generateResumeWithAI(aiReq);
       setResume(prev => ({ ...prev, ...result }));
-      alert("Resume Generated! Please review.");
-    } catch (e) {
-      alert("Generation failed: " + e);
+      toast({
+        title: "Resume Generated!",
+        description: "Please review and customize the suggested content.",
+      });
+    } catch (e: any) {
+      console.error("Generation failed:", e);
+      toast({
+        title: "Generation Failed",
+        description: e.message || "Failed to generate resume with Groq AI.",
+        variant: "destructive",
+      });
     } finally {
       setAiGenerating(false);
+    }
+  };
+
+  const handleScanResume = async () => {
+    setIsScanning(true);
+    try {
+      const result = await scanCompleteResume(resume);
+      setScanResult(result);
+      setShowScanner(true);
+    } catch (e) {
+      console.error("Scan failed:", e);
+      toast({
+        title: "Audit Failed",
+        description: "Could not analyze resume. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsScanning(false);
     }
   };
 
@@ -295,10 +345,12 @@ export default function EditResumePage() {
 
   return (
     <div className="flex flex-col h-screen bg-slate-50">
-      <Header />
+      <div className="no-print">
+        <Header />
+      </div>
 
       {/* Header */}
-      <div className="border-b border-slate-300 bg-white px-4 md:px-8 py-4 md:py-5">
+      <div className="border-b border-slate-300 bg-white px-4 md:px-8 py-4 md:py-5 no-print">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-5">
           {/* Left: Title */}
           <div className="flex items-center gap-3">
@@ -339,6 +391,17 @@ export default function EditResumePage() {
               {!saving && <span className="sm:hidden">Save</span>}
             </Button>
 
+            {/* AI Actions */}
+            <Button
+              size="sm"
+              onClick={handleScanResume}
+              disabled={isScanning || !resume.full_name}
+              className="hidden sm:flex items-center gap-1.5 text-xs sm:text-sm bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 px-2 sm:px-3 h-9 font-medium shadow-sm transition-all"
+            >
+              {isScanning ? <Loader2 className="animate-spin" size={16} /> : <ClipboardCheck size={16} className="text-green-600" />}
+              <span>Audit Resume</span>
+            </Button>
+
             {/* Secondary Actions - Now visible on mobile */}
             <Button
               size="sm"
@@ -351,11 +414,28 @@ export default function EditResumePage() {
 
             <Button
               size="sm"
-              onClick={handlePrint}
-              className="text-xs sm:text-sm bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 px-2.5 sm:px-3 h-9 font-medium"
+              onClick={() => {
+                // Detection if it's a mobile device/narrow screen
+                const isMobile = window.innerWidth < 1024 || /Android|iPhone/i.test(navigator.userAgent);
+
+                if (isMobile) {
+                  toast({
+                    title: "Preparing PDF...",
+                    description: "Please select 'Save as PDF' from the print options in the next screen.",
+                  });
+                  handlePrintMobile();
+                } else {
+                  try {
+                    handlePrint();
+                  } catch (e) {
+                    handlePrintLegacy();
+                  }
+                }
+              }}
+              className="text-xs sm:text-sm bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 px-2 sm:px-3 h-9 font-medium shadow-sm transition-all"
             >
-              <Printer size={16} className="text-green-600" />
-              <span className="hidden sm:inline ml-1.5">PDF</span>
+              <Printer size={16} className="text-green-600 shrink-0" />
+              <span className="hidden min-[400px]:inline ml-1.5 whitespace-nowrap">PDF</span>
             </Button>
 
 
@@ -373,7 +453,7 @@ export default function EditResumePage() {
       </div>
 
       {/* Mobile Preview Toggle */}
-      <div className="lg:hidden border-b border-slate-200 bg-white px-4 py-2.5">
+      <div className="lg:hidden border-b border-slate-200 bg-white px-4 py-2.5 no-print">
         <div className="flex gap-2">
           <Button
             size="sm"
@@ -521,7 +601,7 @@ export default function EditResumePage() {
                   <AccordionContent className="pt-4 pb-3">
                     <Textarea rows={4} value={resume.summary || ''} onChange={e => update('summary', e.target.value)} placeholder="Write a compelling 2-3 sentence summary highlighting your key strengths and experience..." className="border-slate-300" />
                     <div className="flex justify-end mt-3">
-                      <Button variant="ghost" size="sm" className="text-sm text-green-600 hover:text-green-700 hover:bg-green-50" onClick={async () => {
+                      <Button variant="ghost" size="sm" className="text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={async () => {
                         const improved = await improveText(resume.summary || '', 'summary');
                         if (improved) update('summary', improved);
                       }}>
@@ -618,8 +698,15 @@ export default function EditResumePage() {
         </div>
 
         {/* RIGHT SIDE: Live Resume Preview */}
-        <div className={`w-full lg:w-1/2 bg-slate-50 overflow-y-auto overflow-x-hidden p-2 md:p-4 ${!showMobilePreview ? 'hidden lg:block' : 'block'}`}>
-          <div className="w-full max-w-[850px] mx-auto shadow-lg" data-resume-preview>
+        <div className={`w-full lg:w-1/2 bg-slate-50 overflow-y-auto overflow-x-hidden p-2 md:p-4 preview-column ${!showMobilePreview ? 'hidden lg:block' : 'block'}`}>
+          <div className="w-full max-w-[850px] mx-auto shadow-lg relative resume-print-target">
+            {/* 
+                This is the actual preview visible to the user.
+                We keep the 'ref' on THIS component so react-to-print can see it.
+                Even if the parent container is 'hidden' on mobile (display: none),
+                some versions of react-to-print handle it, but for maximum compatibility,
+                we ensure it's technically printable.
+            */}
             {isLoadingResume ? (
               <div className="bg-white w-full mx-auto shadow-lg animate-pulse" style={{ padding: '0.5in', minHeight: '11in' }}>
                 <div className="h-8 bg-slate-200 rounded w-1/2 mb-4"></div>
@@ -643,6 +730,18 @@ export default function EditResumePage() {
               />
             )}
           </div>
+
+          {/* Hidden Print Anchor - Dedicated target for the printing engine */}
+          <div className="absolute top-0 left-0 -z-50 opacity-0 pointer-events-none overflow-hidden h-0 w-0">
+            <div ref={contentRef}>
+              <ResumePreview
+                resume={resume}
+                template={template}
+                accentColor={accentColor}
+                fontScale={fontScale}
+              />
+            </div>
+          </div>
         </div>
 
       </div>
@@ -652,8 +751,100 @@ export default function EditResumePage() {
         open={showJobTailoringDialog}
         onOpenChange={setShowJobTailoringDialog}
         resume={resume}
-        onApplySuggestions={handleJobTailoring}
+        onApplySuggestions={async (suggestions) => {
+          // Handle applied suggestions (this logic was simplified in previous edit)
+          const updatedResume = { ...resume };
+          if (suggestions.suggestedSummary) {
+            updatedResume.summary = suggestions.suggestedSummary;
+          }
+          setResume(updatedResume);
+        }}
       />
+
+      <style>{`
+        @media print {
+          /* Force high-fidelity color printing (backgrounds, gradients) */
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+
+          /* Hide UI elements */
+          .no-print, 
+          header, 
+          nav, 
+          button, 
+          aside,
+          .fixed, 
+          .absolute:not(.resume-element),
+          [role="dialog"],
+          .accordion-item,
+          .tabs-list,
+          .editing-sidebar,
+          footer {
+            display: none !important;
+            visibility: hidden !important;
+          }
+
+          /* Reset body and root for printing */
+          body, #root {
+            background: white !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            overflow: visible !important;
+            display: block !important;
+          }
+
+          /* Main layout reset */
+          .flex { display: block !important; }
+          .min-h-screen { min-height: 0 !important; }
+          .h-screen { height: auto !important; }
+
+          /* Ensure the resume container is visible and occupies full width */
+          .resume-print-target {
+            display: block !important;
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 0.5in !important;
+            box-shadow: none !important;
+            position: static !important;
+            background: white !important;
+          }
+
+          /* Show the preview column even if it was hidden on mobile */
+          .preview-column {
+            display: block !important;
+            width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            z-index: 9999 !important;
+            background: white !important;
+          }
+
+          /* Prevent page breaks inside sections */
+          section, .resume-section {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+
+          /* Professional typography reset for print */
+          h1, h2, h3, h4 { page-break-after: avoid !important; }
+        }
+
+        /* Hide the specific print target from screen view */
+        @media screen {
+          .resume-print-target-hidden {
+             display: none;
+          }
+        }
+      `}</style>
 
       {/* Smart Trade Modal */}
       <SmartTradeModal
@@ -670,6 +861,14 @@ export default function EditResumePage() {
         onSubmit={handleAIPrompt}
       />
 
+
+      {/* Resume Scanner Modal */}
+      <ResumeScannerModal
+        isOpen={showScanner}
+        onClose={() => setShowScanner(false)}
+        scanResult={scanResult}
+        onRescan={handleScanResume}
+      />
 
     </div >
   );

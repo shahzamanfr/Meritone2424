@@ -17,6 +17,7 @@ type ProfileContextType = {
   uploadProfilePicture: (file: File) => Promise<{ url?: string; error?: string }>;
   deleteProfile: () => Promise<{ error?: string; success?: boolean }>;
   hasProfile: boolean;
+  isProfileComplete: boolean;
 };
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
@@ -222,6 +223,19 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     loadProfile();
   }, [user, isAuthenticated, authLoading]);
 
+  // Check if profile is complete (name + bio + at least one skill)
+  const isProfileComplete = useMemo(() => {
+    if (!profile) return false;
+
+    // Check required fields
+    const hasName = !!profile.name;
+    const hasBio = !!profile.bio && profile.bio.trim().length > 0;
+    const hasSkills = (profile.skills_i_have && profile.skills_i_have.length > 0) ||
+      (profile.skills_i_want && profile.skills_i_want.length > 0);
+
+    return hasName && hasBio && hasSkills;
+  }, [profile]);
+
   // Memoize the context value to prevent unnecessary re-renders
   const value = useMemo(() => ({
     profile,
@@ -231,7 +245,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     uploadProfilePicture,
     deleteProfile,
     hasProfile: !!profile,
-  }), [profile, loading]);
+    isProfileComplete,
+  }), [profile, loading, isProfileComplete]);
 
   return (
     <ProfileContext.Provider value={value}>

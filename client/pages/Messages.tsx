@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { messagingService, Message, Conversation } from "@/lib/unified-messaging.service";
 import { supabase } from "@/lib/supabase";
 import { EmailVerificationNotice } from "@/components/EmailVerificationNotice";
+import { BackButton } from "@/components/BackButton";
 
 const Messages: React.FC = () => {
   const navigate = useNavigate();
@@ -269,6 +270,7 @@ const Messages: React.FC = () => {
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 px-6 py-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center space-x-4">
+          <BackButton />
           <h1 className="text-xl font-semibold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
             Messages
           </h1>

@@ -19,17 +19,27 @@ const ResumePreviewComponent = forwardRef<HTMLDivElement, ResumePreviewProps>(({
         projects, achievements, certifications, languages, volunteer
     } = resume;
 
+    const commonStyles = {
+        width: '100%',
+        margin: '0 auto',
+        backgroundColor: 'white',
+        color: '#1a1a1a',
+        boxSizing: 'border-box' as const,
+        position: 'relative' as const,
+        zIndex: 1,
+    };
+
+    // Print-specific class for consistent sizing
+    const printClass = "print:w-[8.5in] print:min-h-[11in] print:m-0 print:p-[0.5in] print:shadow-none";
+
     // ATS Classic Template - MAXIMUM ATS COMPATIBILITY (95+ Score)
     if (template === 'classic') {
         return (
-            <div ref={ref} className="bg-white w-full mx-auto shadow-lg print:shadow-none text-black" style={{
-                fontSize: '11pt',
-                fontFamily: 'Calibri, Inter, Arial, sans-serif',
-                lineHeight: '1.18',
-                maxWidth: '850px',
-                padding: '0.5in',
-                minHeight: '11in'
-            }}>
+            <div
+                ref={ref}
+                className={`${printClass} bg-white shadow-lg`}
+                style={{ ...commonStyles, fontSize: `${0.85 * fontScale}rem`, padding: '0.5in', minHeight: '11in', maxWidth: '850px' }}
+            >
                 {/* Header - Name and Contact */}
                 <div className="mb-4">
                     <h1 className="font-bold mb-2" style={{ fontSize: '20pt', letterSpacing: '0.3px' }}>
@@ -203,7 +213,11 @@ const ResumePreviewComponent = forwardRef<HTMLDivElement, ResumePreviewProps>(({
     // Modern Professional Template - Enhanced Design
     if (template === 'modern') {
         return (
-            <div ref={ref} className="bg-white min-h-[1123px] w-full max-w-[850px] mx-auto shadow-lg print:shadow-none text-slate-900" style={{ fontSize: `${0.9 * fontScale}rem` }}>
+            <div
+                ref={ref}
+                className={`${printClass} bg-white shadow-lg text-slate-900`}
+                style={{ ...commonStyles, fontSize: `${0.9 * fontScale}rem`, minHeight: '11in', maxWidth: '850px' }}
+            >
                 {/* Header with Accent */}
                 <div className="px-10 py-8 text-white relative overflow-hidden" style={{ backgroundColor: accentColor }}>
                     <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.1) 75%, transparent 75%, transparent)', backgroundSize: '20px 20px' }}></div>
@@ -366,7 +380,11 @@ const ResumePreviewComponent = forwardRef<HTMLDivElement, ResumePreviewProps>(({
     // Creative Template - Professional with Personality
     if (template === 'creative') {
         return (
-            <div ref={ref} className="bg-white min-h-[1123px] w-full max-w-[850px] mx-auto shadow-lg print:shadow-none text-slate-900" style={{ fontSize: `${0.88 * fontScale}rem` }}>
+            <div
+                ref={ref}
+                className={`${printClass} bg-white shadow-lg text-slate-900`}
+                style={{ ...commonStyles, fontSize: `${0.88 * fontScale}rem`, minHeight: '11in', maxWidth: '850px' }}
+            >
                 <div className="grid grid-cols-[260px_1fr]">
                     {/* Left Sidebar - Accent Color */}
                     <div className="text-white p-7 space-y-6" style={{ background: `linear-gradient(180deg, ${accentColor} 0%, ${accentColor}dd 100%)` }}>

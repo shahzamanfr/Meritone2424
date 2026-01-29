@@ -52,16 +52,16 @@ export interface AIResumeResponse {
 }
 
 export async function generateResumeWithAI(input: AIResumeRequest): Promise<AIResumeResponse> {
-  const apiKey = getGeminiApiKey();
+  const apiKey = import.meta.env.VITE_GROQ_API_KEY || "";
 
   if (!apiKey) {
-    throw new Error('Gemini API key not found. Please add your API key in settings.');
+    throw new Error('Groq API key not found in environment variables.');
   }
 
   // Try API first, with retry logic
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      return await callGeminiAPI(apiKey, input);
+      return await callGroqAPIForResume(apiKey, input);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.log(`API attempt ${attempt} failed:`, error);
@@ -121,19 +121,19 @@ Return ONLY the improved text, no explanations or quotes.
       max_tokens: 200
     };
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const response = await fetch('/api/groq', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Groq API error:', response.status, errorText);
-      throw new Error(`Groq API error: ${response.status}`);
+      const errorData = await response.json();
+      console.error('Groq Proxy error:', response.status, errorData);
+      const message = typeof errorData.error === 'string' ? errorData.error : (errorData.error?.message || `Error: ${response.status}`);
+      throw new Error(message);
     }
 
     const data = await response.json();
@@ -188,19 +188,19 @@ Return ONLY the bullet points, one per line, without bullet symbols or numbers.`
       max_tokens: 300
     };
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const response = await fetch('/api/groq', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Groq API error:', response.status, errorText);
-      throw new Error('API error');
+      const errorData = await response.json();
+      console.error('Groq Proxy error:', response.status, errorData);
+      const message = typeof errorData.error === 'string' ? errorData.error : (errorData.error?.message || 'API error');
+      throw new Error(message);
     }
 
     const data = await response.json();
@@ -223,186 +223,116 @@ Return ONLY the bullet points, one per line, without bullet symbols or numbers.`
   }
 }
 
-async function callGeminiAPI(apiKey: string, input: AIResumeRequest): Promise<AIResumeResponse> {
-
+async function callGroqAPIForResume(apiKey: string, input: AIResumeRequest): Promise<AIResumeResponse> {
   const prompt = `
-You are an expert resume writer and career consultant with 15+ years of experience. Create a comprehensive, detailed, and highly professional resume that stands out to recruiters and hiring managers.
+You are an expert resume writer. Create a professional, detailed, and ATS-friendly resume.
 
-INPUT INFORMATION:
+INPUT:
 - Name: ${input.full_name}
-- Headline: ${input.headline || 'Not provided'}
-- Email: ${input.email || 'Not provided'}
-- Phone: ${input.phone || 'Not provided'}
-- Location: ${input.location || 'Not provided'}
-- Summary: ${input.summary || 'Not provided'}
-- Education: ${input.education || 'Not provided'}
-- Skills: ${input.skills || 'Not provided'}
-- Experience: ${input.experience || 'Not provided'}
-- Projects: ${input.projects || 'Not provided'}
-- Achievements: ${input.achievements || 'Not provided'}
-- Certifications: ${input.certifications || 'Not provided'}
+- Headline: ${input.headline || ''}
+- Email: ${input.email || ''}
+- Phone: ${input.phone || ''}
+- Location: ${input.location || 'Hyderabad, India'}
+- Summary: ${input.summary || ''}
+- Education: ${input.education || ''}
+- Skills: ${input.skills || ''}
+- Experience: ${input.experience || ''}
+- Projects: ${input.projects || ''}
+- Achievements: ${input.achievements || ''}
+- Certifications: ${input.certifications || ''}
 
-RESUME REQUIREMENTS:
-
-1. **Professional Summary**: Write a compelling 2-3 sentence summary that:
-   - Highlights 2-3 key strengths and technical competencies
-   - Mentions years of experience (estimate if not provided)
-   - Includes specific technologies/frameworks mentioned
-   - Shows current career objectives
-
-2. **Education**: Create education entries with:
-   - Institution name and degree
-   - Graduation year and relevant details
-
-3. **Technical Skills**: Organize into 3-4 categories:
-   - Programming Languages: List 4-6 languages
-   - Frameworks & Tools: Include 4-6 modern frameworks
-   - Other Skills: Database, cloud, soft skills
-
-4. **Experience**: For each role, create 3-4 bullet points that:
-   - Start with action verbs (Developed, Implemented, Led, etc.)
-   - Include specific metrics where possible
-   - Mention technologies used
-   - Show impact and results
-
-5. **Projects**: Create 1-2 project entries with:
-   - Project name and brief description
-   - 2-3 bullet points per project
-   - Technologies used
-   - Key results
-
-6. **Achievements**: List 3-4 notable accomplishments including:
-   - Awards and recognitions
-   - Performance metrics
-   - Leadership roles
-
-7. **Certifications**: Include 2-3 relevant certifications with:
-   - Certification name
-   - Issuing organization
-   - Completion year
-
-CONTENT GUIDELINES:
-- Make content specific but concise
-- Use professional terminology
-- Include realistic company names and technologies
-- Use action verbs (Developed, Implemented, Led, etc.)
-- Include metrics where appropriate
-- Keep bullet points clear and impactful
-- Ensure content is professional and ATS-friendly
-- Default location should be "Hyderabad, India" if not specified
-
-IMPORTANT: Generate professional content that's detailed but not overwhelming. Be specific about technologies and impact without being excessive. Use Hyderabad, India as the default location.
-
-Return the response as a valid JSON object with the exact structure specified above.
+Return ONLY a valid JSON object with this EXACT structure:
+{
+  "full_name": "string",
+  "headline": "string",
+  "email": "string",
+  "phone": "string",
+  "location": "string",
+  "summary": "string",
+  "education": [{"school": "string", "degree": "string", "duration": "string", "details": "string"}],
+  "technical_skills": [{"section": "string", "items": ["string"]}],
+  "experience": [{"company": "string", "role": "string", "duration": "string", "bullets": ["string"]}],
+  "projects": [{"name": "string", "description": "string", "bullets": ["string"]}],
+  "achievements": ["string"],
+  "certifications": [{"name": "string", "issuer": "string", "year": "string"}]
+}
 `;
 
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+    const response = await fetch('/api/groq', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 2048,
-        }
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          {
+            role: "system",
+            content: "You are a professional resume writer. Always return valid JSON."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        temperature: 0.3,
+        response_format: { type: "json_object" }
       })
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(`Gemini API error: ${errorData.error?.message || 'Unknown error'}`);
+      const message = typeof errorData.error === 'string' ? errorData.error : (errorData.error?.message || `Proxy error: ${response.status}`);
+      throw new Error(message);
     }
 
     const data = await response.json();
-    if (import.meta.env.DEV) console.log('Gemini API Response:', data);
+    const generatedText = data.choices?.[0]?.message?.content?.trim();
 
-    const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!generatedText) throw new Error('No content generated from Groq');
 
-    if (!generatedText) {
-      console.error('No generated text found:', data);
-      throw new Error('No content generated from Gemini API');
-    }
+    const parsedData = JSON.parse(generatedText);
 
-    if (import.meta.env.DEV) console.log('Generated text:', generatedText);
-
-    // Extract JSON from the response (in case there's extra text)
-    const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Invalid JSON response from AI. Generated text: ' + generatedText.substring(0, 200));
-    }
-
-    try {
-      const parsedData = JSON.parse(jsonMatch[0]);
-      if (import.meta.env.DEV) console.log('Parsed data:', parsedData);
-
-      // Handle nested structure where resume data is inside a "resume" object
-      const resumeData = parsedData.resume || parsedData;
-
-      // Convert the nested structure to our expected format
-      const convertedResume: AIResumeResponse = {
-        full_name: resumeData.contact?.name || resumeData.full_name || "Your Name",
-        headline: resumeData.headline || "Professional seeking opportunities",
-        email: resumeData.contact?.email || resumeData.email || "",
-        phone: resumeData.contact?.phone || resumeData.phone || "",
-        location: resumeData.contact?.location || resumeData.location || "",
-        summary: resumeData.professionalSummary || resumeData.summary || "",
-        education: (resumeData.education || []).map((edu: any) => ({
-          school: edu.institution || edu.school || "",
-          degree: edu.degree || "",
-          duration: edu.graduationDate || edu.duration || "",
-          details: edu.gpa || edu.details || ""
-        })),
-        technical_skills: [
-          {
-            section: "Programming Languages",
-            items: resumeData.technicalSkills?.programmingLanguages || []
-          },
-          {
-            section: "Other Skills",
-            items: resumeData.technicalSkills?.otherSkills || []
-          }
-        ].filter(skill => skill.items.length > 0),
-        experience: (resumeData.experience || []).map((exp: any) => ({
-          company: exp.company || "",
-          role: exp.title || exp.role || "",
-          duration: exp.dates || exp.duration || "",
-          bullets: exp.responsibilities || exp.bullets || []
-        })),
-        projects: (resumeData.projects || []).map((proj: any) => ({
-          name: proj.projectName || proj.name || "",
-          description: proj.description || "",
-          bullets: proj.achievements?.map((a: any) => a.achievement || a) || proj.bullets || []
-        })),
-        achievements: (resumeData.achievements || []).map((ach: any) =>
-          ach.achievement || ach
-        ),
-        certifications: (resumeData.certifications || []).map((cert: any) => ({
-          name: cert.name || "",
-          issuer: cert.issuer || "",
-          year: cert.date || cert.year || ""
-        }))
-      };
-
-      if (import.meta.env.DEV) console.log('Converted resume:', convertedResume);
-      return convertedResume;
-    } catch (parseError) {
-      console.error('JSON Parse Error:', parseError);
-      console.error('Raw JSON:', jsonMatch[0]);
-      throw new Error('Failed to parse AI response as JSON');
-    }
-
+    // Ensure structure matches AIResumeResponse
+    return {
+      full_name: parsedData.full_name || input.full_name || "Your Name",
+      headline: parsedData.headline || "Professional Seeking Opportunities",
+      email: parsedData.email || input.email || "",
+      phone: parsedData.phone || input.phone || "",
+      location: parsedData.location || input.location || "Hyderabad, India",
+      summary: parsedData.summary || "",
+      education: (parsedData.education || []).map((edu: any) => ({
+        school: edu.school || "",
+        degree: edu.degree || "",
+        duration: edu.duration || "",
+        details: edu.details || ""
+      })),
+      technical_skills: (parsedData.technical_skills || []).map((s: any) => ({
+        section: s.section || "Skills",
+        items: s.items || []
+      })),
+      experience: (parsedData.experience || []).map((exp: any) => ({
+        company: exp.company || "",
+        role: exp.role || "",
+        duration: exp.duration || "",
+        bullets: exp.bullets || []
+      })),
+      projects: (parsedData.projects || []).map((proj: any) => ({
+        name: proj.name || "",
+        description: proj.description || "",
+        bullets: proj.bullets || []
+      })),
+      achievements: parsedData.achievements || [],
+      certifications: (parsedData.certifications || []).map((cert: any) => ({
+        name: cert.name || "",
+        issuer: cert.issuer || "",
+        year: cert.year || ""
+      }))
+    };
   } catch (error) {
-    console.error('AI Resume Generation Error:', error);
-    throw error; // Re-throw to trigger retry logic
+    console.error('Groq AI Resume Generation Error:', error);
+    throw error;
   }
 }
 
@@ -547,8 +477,8 @@ export async function tailorResumeToJob(resume: Partial<Resume>, jobDescription:
   skillsToHighlight: string[];
   suggestedSummary?: string;
 }> {
-  const apiKey = getGeminiApiKey();
-  if (!apiKey) throw new Error("API Key missing");
+  const apiKey = import.meta.env.VITE_GROQ_API_KEY || "";
+  if (!apiKey) throw new Error("Groq API Key missing");
 
   // Extract current skills from resume
   const currentSkills = resume.technical_skills?.flatMap(s => s.items) || [];
@@ -580,30 +510,40 @@ IMPORTANT: Return ONLY valid JSON, no additional text.
 `;
 
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+    const response = await fetch('/api/groq', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 1024,
-        }
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert ATS analyzer. Return result as valid JSON."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        temperature: 0.3,
+        response_format: { type: "json_object" }
       })
     });
 
-    if (!response.ok) throw new Error("AI Request Failed");
+    if (!response.ok) {
+      const errorData = await response.json();
+      const message = typeof errorData.error === 'string' ? errorData.error : (errorData.error?.message || "Proxy Request Failed");
+      throw new Error(message);
+    }
 
     const data = await response.json();
-    const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    const generatedText = data.choices?.[0]?.message?.content?.trim();
 
-    if (!generatedText) throw new Error("No response from AI");
+    if (!generatedText) throw new Error("No response from Groq AI");
 
-    // Extract JSON from response
-    const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("Invalid response format");
-
-    const result = JSON.parse(jsonMatch[0]);
+    const result = JSON.parse(generatedText);
 
     return {
       matchScore: result.matchScore || 0,
@@ -679,116 +619,71 @@ export async function scanCompleteResume(resume: Partial<Resume>): Promise<Resum
   // Build comprehensive resume text for analysis
   const resumeText = buildResumeText(resume);
 
-  const prompt = `You are a STRICT ATS system used by Fortune 500 companies. Your job is to REJECT weak resumes and ONLY pass strong ones.
+  const prompt = `You are a Senior Executive Recruiter at a top-tier tech firm (FAANG level). You don't just check keywords; you evaluate POTENTIAL and IMPACT. You are brutally honest, cynical, and extremely difficult to impress.
 
-RESUME TO ANALYZE:
+RESUME TEXT:
 ${resumeText}
 
-CRITICAL SCORING RULES - BE HARSH AND REALISTIC:
+YOUR TASK:
+Audit this resume as if you are deciding whether to interview this candidate for a high-paying role. Most resumes are "garbage" because they list duties instead of achievements. Does this one stand out?
 
-YOU MUST DEDUCT POINTS FOR EVERY MISSING OR WEAK ELEMENT.
+CRITICAL GRADING CRITERIA (Be strict):
 
-CONTACT INFORMATION (10 points) - ALL REQUIRED:
-- Missing name: FAIL (0 points for section)
-- Missing email: -3pts
-- Missing phone: -3pts  
-- Missing location: -2pts
-- No LinkedIn/portfolio: -2pts
+1. **IMPACT OVER DUTIES (Most Important)**
+   - "Responsible for..." = FAIL.
+   - "Managed..." (without outcome) = WEAK.
+   - "Increased revenue by 40%..." = STRONG.
+   - If I can't see the *result* of their work, deduct massive points.
 
-PROFESSIONAL SUMMARY (15 points) - MUST BE STRONG:
-- No summary: 0 points
-- Summary < 30 words: 3 points (too short)
-- Summary 30-80 words, generic: 8 points (weak)
-- Summary 80-150 words, specific value prop: 15 points (good)
-- Buzzwords without substance: -5pts
+2. **SPECIFICITY & METRICS**
+   - No numbers? Deduct 20 points immediately.
+   - Vague terms like "various", "multiple", "many" are red flags.
 
-WORK EXPERIENCE (30 points) - MOST CRITICAL:
-- No experience: 0 points (FAIL)
-- 1 job, no details: 5 points
-- Each job WITHOUT quantified metrics: -8pts per job
-- Weak verbs ("responsible for", "worked on"): -5pts
-- Missing dates or company names: -5pts per job
-- Less than 3 bullet points per job: -3pts per job
-- No numbers, %, or $ anywhere: -15pts total
+3. **CLARITY & BREVITY**
+   - Long blocks of text? Deduct points.
+   - Fluff words (passionate, hard-working, synergy)? Deduct points.
 
-SKILLS & KEYWORDS (20 points) - MUST BE RELEVANT:
-- No skills section: 0 points
-- Less than 6 skills: 5 points (insufficient)
-- 6-10 generic skills: 10 points
-- 10+ specific, relevant skills: 20 points
-- Outdated technologies: -5pts
-- Skills don't match experience: -8pts
+4. **THE "SO WHAT?" TEST**
+   - For every bullet point, ask "So what?". If the resume doesn't answer why that task mattered to the business, it's weak.
 
-EDUCATION (10 points):
-- No education: 0 points
-- School name only: 3 points
-- Degree + school: 7 points
-- Degree + school + date + GPA/honors: 10 points
+SCORING GUIDE:
+- **90-100 (Top 1%)**: Perfect. Every bullet is an achievement. Metrics everywhere. Clear narrative.
+- **75-89 (Strong)**: Good metrics, clear impact, but some filler or weak verbs.
+- **50-74 (Average)**: Mostly duties/responsibilities. Some good parts, but generic. "Formulaic".
+- **< 50 (Weak)**: Just a list of tasks. No metrics. Boring summary.
 
-PROJECTS (8 points):
-- No projects: 0 points
-- 1 project, minimal detail: 3 points
-- 2+ projects with tech stack: 8 points
-
-CERTIFICATIONS (5 points):
-- No certs: 0 points
-- 1-2 relevant certs: 5 points
-
-ACHIEVEMENTS (2 points):
-- Specific, quantified achievements: 2 points
-- Generic statements: 0 points
-
-TOTAL: 100 points possible
-
-REALISTIC GRADING (BE STRICT):
-- 80-100: Excellent (Top 5% - ready for FAANG)
-- 65-79: Good (Top 20% - competitive)
-- 45-64: Fair (Needs significant work)
-- 25-44: Poor (Major gaps, likely rejected)
-- 0-24: Fail (Not ready for applications)
-
-IMPORTANT RULES:
-1. Empty or minimal resumes should score 15-35
-2. Average resumes should score 45-60
-3. Only truly strong resumes score 70+
-4. Be CRITICAL - find every flaw
-5. Deduct points aggressively for missing content
-6. Don't be nice - be REALISTIC
-
-Return ONLY valid JSON:
+RETURN JSON ONLY (No markdown, no preamble):
 {
-  "atsScore": <0-100, BE HARSH>,
-  "overallGrade": "<Excellent|Good|Fair|Poor|Fail>",
-  "strengths": ["only list REAL strengths"],
-  "issues": [{
-    "category": "<ATS|Content|Keywords|Formatting|Impact>",
-    "severity": "<critical|high|medium|low>",
-    "issue": "Specific problem found",
-    "suggestion": "Exact fix needed",
-    "location": "Section",
-    "details": "Why this will get you rejected"
-  }],
+  "atsScore": <0-100 integer>,
+  "overallGrade": "<Elite|Strong|Average|Weak>",
+  "summary": "<2-3 sentences. Be direct. Example: 'This is a competent resume but completely fails to sell your impact. You list tasks like a job description instead of proving your value with numbers.'>",
+  "strengths": ["<Specific, non-generic strength 1>", "<Strength 2>"],
+  "issues": [
+    {
+      "category": "<Impact|Clarity|ATS|Content>",
+      "severity": "<critical|high|medium>",
+      "issue": "<Brief, punchy problem description>",
+      "suggestion": "<Specific fix. Example: Change 'Managed team' to 'Led 5 engineers to deliver X'>",
+      "location": "<Section Name>"
+    }
+  ],
   "keywordAnalysis": {
-    "present": ["actual keywords found"],
-    "missing": ["critical missing keywords"],
-    "suggestions": ["specific keywords to add"]
+    "present": ["<Top 5 strong keywords found>"],
+    "missing": ["<Critical industry terms missing>"],
+    "suggestions": ["<Specific keywords to add>"]
   },
   "recommendations": [
-    "PRIORITY 1: Most critical fix",
-    "PRIORITY 2: Second most critical",
-    "PRIORITY 3: Third most critical"
-  ],
-  "summary": "Brutally honest 2-3 sentence assessment"
-}
-
-BE STRICT. BE CRITICAL. BE REALISTIC. This is what real ATS systems do.`;
+    "<Strategic advice 1. Example: Rewrite your summary to focus on ROI rather than years of experience.>",
+    "<Strategic advice 2>",
+    "<Strategic advice 3>"
+  ]
+}`;
 
   try {
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const response = await fetch('/api/groq', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",
@@ -805,14 +700,14 @@ BE STRICT. BE CRITICAL. BE REALISTIC. This is what real ATS systems do.`;
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Groq API error:', response.status, errorText);
+      const errorData = await response.json();
+      console.error('❌ Groq Proxy error:', response.status, errorData);
       console.warn('⚠️ Falling back to hardcoded scoring');
       return generateFallbackScan(resume);
     }
 
     const data = await response.json();
-    console.log('✅ Grok API response received');
+    console.log('✅ Groq Proxy response received');
     const resultText = data.choices?.[0]?.message?.content?.trim();
 
     if (!resultText) {
@@ -862,22 +757,22 @@ function buildResumeText(resume: Partial<Resume>): string {
   let text = '';
 
   // Header
-  text += `NAME: ${resume.full_name || 'Not provided'}\n`;
-  text += `HEADLINE: ${resume.headline || 'Not provided'}\n`;
-  text += `CONTACT: ${resume.email || ''} | ${resume.phone || ''} | ${resume.location || ''}\n\n`;
+  text += `NAME: ${resume.full_name || 'Not provided'} \n`;
+  text += `HEADLINE: ${resume.headline || 'Not provided'} \n`;
+  text += `CONTACT: ${resume.email || ''} | ${resume.phone || ''} | ${resume.location || ''} \n\n`;
 
   // Summary
   if (resume.summary) {
-    text += `PROFESSIONAL SUMMARY:\n${resume.summary}\n\n`;
+    text += `PROFESSIONAL SUMMARY: \n${resume.summary} \n\n`;
   }
 
   // Experience
   if (resume.experience && resume.experience.length > 0) {
-    text += `WORK EXPERIENCE:\n`;
+    text += `WORK EXPERIENCE: \n`;
     resume.experience.forEach(exp => {
-      text += `- ${exp.role || 'Role'} at ${exp.company || 'Company'} (${exp.duration || 'Duration'})\n`;
+      text += `- ${exp.role || 'Role'} at ${exp.company || 'Company'} (${exp.duration || 'Duration'}) \n`;
       exp.bullets?.forEach(bullet => {
-        text += `  • ${bullet}\n`;
+        text += `  • ${bullet} \n`;
       });
       text += '\n';
     });
@@ -885,12 +780,12 @@ function buildResumeText(resume: Partial<Resume>): string {
 
   // Projects
   if (resume.projects && resume.projects.length > 0) {
-    text += `PROJECTS:\n`;
+    text += `PROJECTS: \n`;
     resume.projects.forEach(proj => {
-      text += `- ${proj.name}\n`;
-      if (proj.description) text += `  ${proj.description}\n`;
+      text += `- ${proj.name} \n`;
+      if (proj.description) text += `  ${proj.description} \n`;
       proj.bullets?.forEach(bullet => {
-        text += `  • ${bullet}\n`;
+        text += `  • ${bullet} \n`;
       });
       text += '\n';
     });
@@ -898,37 +793,37 @@ function buildResumeText(resume: Partial<Resume>): string {
 
   // Skills
   if (resume.technical_skills && resume.technical_skills.length > 0) {
-    text += `TECHNICAL SKILLS:\n`;
+    text += `TECHNICAL SKILLS: \n`;
     resume.technical_skills.forEach(skillSection => {
-      text += `- ${skillSection.section}: ${skillSection.items.join(', ')}\n`;
+      text += `- ${skillSection.section}: ${skillSection.items.join(', ')} \n`;
     });
     text += '\n';
   }
 
   // Education
   if (resume.education && resume.education.length > 0) {
-    text += `EDUCATION:\n`;
+    text += `EDUCATION: \n`;
     resume.education.forEach(edu => {
-      text += `- ${edu.degree || 'Degree'} from ${edu.school || 'School'} (${edu.duration || 'Duration'})\n`;
-      if (edu.details) text += `  ${edu.details}\n`;
+      text += `- ${edu.degree || 'Degree'} from ${edu.school || 'School'} (${edu.duration || 'Duration'}) \n`;
+      if (edu.details) text += `  ${edu.details} \n`;
     });
     text += '\n';
   }
 
   // Achievements
   if (resume.achievements && resume.achievements.length > 0) {
-    text += `ACHIEVEMENTS:\n`;
+    text += `ACHIEVEMENTS: \n`;
     resume.achievements.forEach(ach => {
-      text += `- ${ach}\n`;
+      text += `- ${ach} \n`;
     });
     text += '\n';
   }
 
   // Certifications
   if (resume.certifications && resume.certifications.length > 0) {
-    text += `CERTIFICATIONS:\n`;
+    text += `CERTIFICATIONS: \n`;
     resume.certifications.forEach(cert => {
-      text += `- ${cert.name} from ${cert.issuer || 'Issuer'} (${cert.year || 'Year'})\n`;
+      text += `- ${cert.name} from ${cert.issuer || 'Issuer'} (${cert.year || 'Year'}) \n`;
     });
   }
 

@@ -8,6 +8,7 @@ import { useProfile } from "@/contexts/ProfileContext";
 import { usePosts } from "@/contexts/PostsContext";
 import { supabase } from "@/lib/supabase";
 import { ImageCarouselComponent } from "@/components/ImageCarousel";
+import { BackButton } from "@/components/BackButton";
 import FollowButton from "@/components/FollowButton";
 import FollowersModal from "@/components/FollowersModal";
 import FollowingModal from "@/components/FollowingModal";
@@ -30,7 +31,8 @@ import {
   Briefcase,
   Search,
   Globe,
-  Settings
+  Settings,
+  Lock
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -520,6 +522,37 @@ const Profile: React.FC = () => {
     );
   }
 
+  // Privacy Check: if profile is private and viewer is not the owner
+  const isPrivate = currentProfile?.is_public === false;
+  if (!isLoading && isPrivate && isViewingOtherUser) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white border-b border-gray-200 sticky top-0 z-50">
+          <div className="max-w-4xl mx-auto px-4 py-4">
+            <div className="flex items-center space-x-4">
+              <BackButton />
+              <h1 className="text-xl font-bold text-gray-900">Private Profile</h1>
+            </div>
+          </div>
+        </div>
+        <div className="container mx-auto px-4 py-20">
+          <div className="max-w-md mx-auto text-center bg-white p-10 rounded-2xl shadow-sm border border-gray-100">
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Lock className="w-10 h-10 text-gray-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">This profile is private</h2>
+            <p className="text-gray-600 mb-8">
+              You must be following this user to view their profile, or they have chosen to keep their profile private.
+            </p>
+            <Button onClick={() => navigate(-1)} className="w-full bg-green-600 hover:bg-green-700">
+              Go Back
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const getPostTypeInfo = (type: string) => {
     switch (type) {
       case 'skill_offer':
@@ -574,27 +607,31 @@ const Profile: React.FC = () => {
   };
 
   const renderMediaPreview = (mediaUrl: string, index: number) => {
-    if (mediaUrl.startsWith('data:image/')) {
+    if (mediaUrl.startsWith('data:image/') || mediaUrl.match(/\.(jpeg|jpg|gif|png)$/i)) {
       return (
         <img
           src={mediaUrl}
           alt={`Post media ${index + 1}`}
-          className="w-full h-48 object-cover rounded-lg border border-gray-200 hover:opacity-90 transition-opacity"
+          loading="lazy"
+          className="w-full h-full object-contain hover:opacity-95 transition-opacity"
         />
       );
-    } else if (mediaUrl.startsWith('data:video/')) {
+    } else if (mediaUrl.startsWith('data:video/') || mediaUrl.match(/\.(mp4|webm|ogg)$/i)) {
       return (
         <video
           src={mediaUrl}
-          className="w-full h-48 object-cover rounded-lg border border-gray-200"
+          className="w-full h-full object-contain"
           controls
           preload="metadata"
         />
       );
     } else {
       return (
-        <div className="w-full h-48 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center">
-          <FileIcon className="w-8 h-8 text-gray-400" />
+        <div className="w-full h-48 bg-gray-50 rounded-lg flex items-center justify-center">
+          <div className="text-center">
+            <FileIcon className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+            <span className="text-sm text-gray-500">Attachment</span>
+          </div>
         </div>
       );
     }
@@ -748,11 +785,15 @@ const Profile: React.FC = () => {
                   </h1>
                   <div className="flex flex-col sm:flex-row items-center gap-3 text-gray-600">
                     <div className="flex items-center gap-1.5">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      <span className="text-sm">{currentProfile?.location || "Location not set"}</span>
+                      {(currentProfile?.show_location ?? true) && (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <span className="text-sm">{currentProfile?.location || "Location not set"}</span>
+                        </>
+                      )}
                     </div>
                     <span className="hidden sm:block text-gray-400">•</span>
                     <div className="flex items-center gap-1.5">
@@ -1193,10 +1234,19 @@ const Profile: React.FC = () => {
                     </span>
                   </div>
 
-                  <div>
-                    <h4 className="font-bold text-gray-900 mb-4 text-lg">Location</h4>
-                    <span className="text-gray-700 text-base">{currentProfile?.location || "Not specified"}</span>
-                  </div>
+                  {(currentProfile?.show_location ?? true) && (
+                    <div>
+                      <h4 className="font-bold text-gray-900 mb-4 text-lg">Location</h4>
+                      <span className="text-gray-700 text-base">{currentProfile?.location || "Not specified"}</span>
+                    </div>
+                  )}
+
+                  {(currentProfile?.show_email ?? false) && (
+                    <div>
+                      <h4 className="font-bold text-gray-900 mb-4 text-lg">Email</h4>
+                      <span className="text-gray-700 text-base">{currentProfile?.email || "Not specified"}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1290,7 +1340,7 @@ const Profile: React.FC = () => {
                           >
                             {follower.name}
                           </h3>
-                          <p className="text-base text-gray-500 truncate">{follower.email}</p>
+                          {follower.show_email && <p className="text-base text-gray-500 truncate">{follower.email}</p>}
                           {follower.bio && (
                             <p className="text-base text-gray-600 mt-2 line-clamp-2">{follower.bio}</p>
                           )}
@@ -1360,7 +1410,7 @@ const Profile: React.FC = () => {
                           >
                             {user.name}
                           </h3>
-                          <p className="text-base text-gray-500 truncate">{user.email}</p>
+                          {user.show_email && <p className="text-base text-gray-500 truncate">{user.email}</p>}
                           {user.bio && (
                             <p className="text-base text-gray-600 mt-2 line-clamp-2">{user.bio}</p>
                           )}

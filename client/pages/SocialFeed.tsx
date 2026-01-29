@@ -33,7 +33,8 @@ import {
   ArrowRight,
   Trash2,
   MoreVertical,
-  AlertCircle
+  AlertCircle,
+  Pencil
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -62,14 +63,15 @@ const SocialFeed: React.FC = () => {
 
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
-  const { posts, loading, hasMore, loadMorePosts, likePost, unlikePost, refreshPosts, deletePost } = usePosts();
+  const { posts, loading, error, hasMore, loadMorePosts, likePost, unlikePost, refreshPosts, deletePost, retryLoad } = usePosts();
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [filterType, setFilterType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const { profile: currentUserProfile } = useProfile();
+  const { profile: currentUserProfile, isProfileComplete } = useProfile();
   const [sortBy, setSortBy] = useState<'latest' | 'popular'>('latest');
   const commentTogglesRef = React.useRef<Map<string, () => void>>(new Map());
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
   const { toast } = useToast();
 
 
@@ -93,7 +95,11 @@ const SocialFeed: React.FC = () => {
       if (sortBy === 'popular') {
         return (b.likes_count + b.comments_count) - (a.likes_count + a.comments_count);
       }
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      const safeDateA = isNaN(dateA) ? 0 : dateA;
+      const safeDateB = isNaN(dateB) ? 0 : dateB;
+      return safeDateB - safeDateA;
     });
 
   // Infinite scroll hook
@@ -104,16 +110,50 @@ const SocialFeed: React.FC = () => {
     threshold: 400
   });
 
+  const [likingPosts, setLikingPosts] = useState<Set<string>>(new Set());
+
   const handleLike = async (postId: string) => {
+    // Check if profile is complete
+    if (!isProfileComplete) {
+      toast({
+        title: "Complete your profile",
+        description: "Please add a bio and at least one skill to like posts",
+        variant: "destructive"
+      });
+      navigate('/edit-profile');
+      return;
+    }
+
+    // Prevent multiple simultaneous requests for the same post
+    if (likingPosts.has(postId)) {
+      console.log('Already processing like for this post, skipping...');
+      return;
+    }
+
     const post = posts.find(p => p.id === postId);
     if (!post) return;
 
-    if (post.isLiked) {
-      await unlikePost(postId);
-    } else {
-      await likePost(postId);
+    // Mark this post as being processed
+    setLikingPosts(prev => new Set(prev).add(postId));
+
+    try {
+      if (post.isLiked) {
+        await unlikePost(postId);
+      } else {
+        await likePost(postId);
+      }
+    } finally {
+      // Remove from processing set after a short delay to prevent rapid re-clicks
+      setTimeout(() => {
+        setLikingPosts(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(postId);
+          return newSet;
+        });
+      }, 300);
     }
   };
+
 
 
   const handleDeletePost = async () => {
@@ -200,14 +240,14 @@ const SocialFeed: React.FC = () => {
           src={mediaUrl}
           alt={`Post media ${index + 1}`}
           loading="lazy"
-          className="w-full max-h-96 object-cover hover:opacity-95 transition-opacity"
+          className="w-full h-full object-contain hover:opacity-95 transition-opacity"
         />
       );
     } else if (mediaUrl.startsWith('data:video/') || mediaUrl.match(/\.(mp4|webm|ogg)$/i)) {
       return (
         <video
           src={mediaUrl}
-          className="w-full max-h-96 object-cover"
+          className="w-full h-full object-contain"
           controls
           preload="metadata"
         />
@@ -232,75 +272,111 @@ const SocialFeed: React.FC = () => {
       {/* LinkedIn-style Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between px-3 sm:px-6 py-3">
-            {/* Left Section - Back Button & Logo */}
-            <div className="flex items-center space-x-2 sm:space-x-4 flex-1">
-              <BackButton />
+          {/* Mobile Search Overlay */}
+          {showMobileSearch ? (
+            <div className="flex items-center px-4 py-3 space-x-4 bg-white animate-in slide-in-from-top duration-200">
               <button
-                onClick={() => navigate("/")}
-                className="hover:opacity-80 transition-opacity"
+                onClick={() => {
+                  setShowMobileSearch(false);
+                  setSearchQuery('');
+                }}
+                className="p-2 hover:bg-gray-100 rounded-full text-gray-600 transition-colors"
               >
-                <img
-                  src="/meritone-logo.png"
-                  alt="MeritOne"
-                  className="h-10 sm:h-12 w-auto object-contain"
-                />
+                <ArrowRight className="w-5 h-5 rotate-180" />
               </button>
-
-              <div className="hidden md:block relative flex-1 max-w-md">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
+                  autoFocus
                   type="text"
-                  placeholder="Search posts, skills, people..."
+                  placeholder="Search posts, skills..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-4 py-2 w-full bg-gray-100 border-0 rounded-md text-sm placeholder-gray-500 focus:bg-white focus:ring-2 focus:ring-green-500 focus:outline-none transition-all"
+                  className="pl-10 pr-4 py-2.5 w-full bg-gray-100 border-0 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-green-500 focus:outline-none transition-all"
                 />
               </div>
             </div>
-
-            {/* Right Section - Navigation & Actions */}
-            <div className="flex items-center space-x-0.5 sm:space-x-1">
-              <button
-                onClick={() => navigate('/')}
-                className="hidden sm:flex flex-col items-center p-2 sm:p-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors min-w-[48px] sm:min-w-[64px]"
-              >
-                <Home className="w-5 h-5 sm:w-6 sm:h-6" />
-                <span className="text-xs mt-1 hidden lg:block">Home</span>
-              </button>
-
-              <div className="relative hidden sm:block">
-                <button className="flex flex-col items-center p-2 sm:p-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors min-w-[48px] sm:min-w-[64px]">
-                  <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
-                  <span className="text-xs mt-1 hidden lg:block">Trending</span>
-                </button>
-              </div>
-
-              <div className="flex items-center space-x-2 sm:space-x-3 ml-2 sm:ml-6 pl-2 sm:pl-6 border-l border-gray-200">
+          ) : (
+            <div className="flex items-center justify-between px-4 sm:px-6 py-2.5">
+              {/* Left Section - Logo & Desktop Search */}
+              <div className="flex items-center space-x-3 sm:space-x-4 flex-1">
+                <div className="hidden sm:block">
+                  <BackButton />
+                </div>
                 <button
-                  onClick={() => currentUserProfile?.user_id && navigate(`/profile/${currentUserProfile.user_id}`)}
-                  className="hover:opacity-80 transition-opacity focus:outline-none"
+                  onClick={() => navigate("/")}
+                  className="hover:opacity-80 transition-opacity shrink-0"
                 >
                   <img
-                    src={getAvatarUrl(currentUserProfile?.profile_picture, currentUserProfile?.name)}
-                    alt="Profile"
-                    loading="lazy"
-                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-gray-200"
+                    src="/meritone-logo.png"
+                    alt="MeritOne"
+                    className="h-8 sm:h-10 w-auto object-contain"
                   />
                 </button>
-                <Button
-                  onClick={() => navigate("/create-post")}
-                  size="sm"
-                  className="bg-green-600 hover:bg-green-700 text-white font-medium px-4 sm:px-5 py-2 rounded-lg shadow-sm transition-all"
+
+                <div className="hidden md:block relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search posts, skills..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 pr-4 py-2 w-full bg-gray-100 border-0 rounded-lg text-sm placeholder-gray-500 focus:bg-white focus:ring-2 focus:ring-green-500 focus:outline-none transition-all shadow-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Right Section - Icons & Actions */}
+              <div className="flex items-center space-x-2 sm:space-x-4">
+                {/* Mobile Search Trigger */}
+                <button
+                  onClick={() => setShowMobileSearch(true)}
+                  className="md:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+                  aria-label="Search"
                 >
-                  <Plus className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline text-sm">Create Post</span>
-                </Button>
-              </div >
-            </div >
-          </div >
-        </div >
-      </header >
+                  <Search className="w-5 h-5" />
+                </button>
+
+                <div className="hidden sm:flex items-center space-x-1 border-r border-gray-200 pr-4 mr-2">
+                  <button
+                    onClick={() => navigate('/')}
+                    className="flex flex-col items-center p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors min-w-[56px]"
+                  >
+                    <Home className="w-5 h-5" />
+                    <span className="text-[10px] mt-1 font-medium hidden lg:block uppercase tracking-wider">Home</span>
+                  </button>
+                  <button className="flex flex-col items-center p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors min-w-[56px]">
+                    <TrendingUp className="w-5 h-5" />
+                    <span className="text-[10px] mt-1 font-medium hidden lg:block uppercase tracking-wider">Trending</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center space-x-2 sm:space-x-4">
+                  <NotificationBell />
+                  <button
+                    onClick={() => currentUserProfile?.user_id && navigate(`/profile/${currentUserProfile.user_id}`)}
+                    className="shrink-0 hover:ring-2 hover:ring-green-500 rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-green-500"
+                  >
+                    <img
+                      src={getAvatarUrl(currentUserProfile?.profile_picture, currentUserProfile?.name)}
+                      alt="Profile"
+                      className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover border border-gray-200"
+                    />
+                  </button>
+                  <Button
+                    onClick={() => navigate("/create-post")}
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-sm transition-all h-8 sm:h-10 px-3 sm:px-4"
+                  >
+                    <Plus className="w-4 h-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Post</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </header>
 
       {/* Main Content */}
       < div className="max-w-6xl mx-auto py-6" >
@@ -339,30 +415,35 @@ const SocialFeed: React.FC = () => {
           {/* Main Feed - Centered */}
           <div className="w-full lg:max-w-2xl flex-shrink-0">
             {/* Create Post Widget */}
-            <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4 shadow-sm">
-              <div className="flex items-center space-x-3">
+            <div className="bg-white rounded-lg border border-gray-200 p-4 mb-3 shadow-sm">
+              <div className="flex items-center space-x-4">
                 <img
                   src={getAvatarUrl(currentUserProfile?.profile_picture, currentUserProfile?.name)}
                   alt="Profile"
-                  className="w-12 h-12 rounded-full object-cover"
+                  className="w-10 h-10 rounded-full object-cover shrink-0"
                 />
                 <button
                   onClick={() => navigate("/create-post")}
-                  className="flex-1 text-left px-4 py-3 border border-gray-300 rounded-full text-gray-500 hover:bg-gray-50 transition-colors text-sm"
+                  className="flex-1 text-left px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-full text-gray-500 hover:bg-gray-100 transition-colors text-sm font-medium"
                 >
-                  Start a post about your skills...
+                  <span className="sm:hidden">What's on your mind?</span>
+                  <span className="hidden sm:inline">Start a post about your skills...</span>
                 </button>
               </div>
+            </div>
 
-              <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
-                <div className="flex items-center gap-2">
+            {/* Feed Selection Controls - Optimized for Mobile */}
+            <div className="bg-white rounded-lg border border-gray-200 mb-4 shadow-sm overflow-hidden">
+              <div className="flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
+                {/* Sorting */}
+                <div className="flex p-2 gap-1 bg-gray-50/50">
                   <button
                     onClick={() => setSortBy('latest')}
                     className={cn(
-                      "px-4 py-2 rounded-lg text-sm font-medium transition-all border",
+                      "flex-1 px-4 py-1.5 rounded-md text-xs font-semibold transition-all",
                       sortBy === 'latest'
-                        ? "bg-gray-900 text-white border-gray-900"
-                        : "bg-white text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                        ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
+                        : "text-gray-500 hover:bg-gray-100"
                     )}
                   >
                     Recent
@@ -370,17 +451,18 @@ const SocialFeed: React.FC = () => {
                   <button
                     onClick={() => setSortBy('popular')}
                     className={cn(
-                      "px-4 py-2 rounded-lg text-sm font-medium transition-all border",
+                      "flex-1 px-4 py-1.5 rounded-md text-xs font-semibold transition-all",
                       sortBy === 'popular'
-                        ? "bg-gray-900 text-white border-gray-900"
-                        : "bg-white text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                        ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
+                        : "text-gray-500 hover:bg-gray-100"
                     )}
                   >
                     Popular
                   </button>
                 </div>
 
-                <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                {/* Filtering - Horizontal Scrollable on Mobile */}
+                <div className="flex-1 flex items-center p-2 space-x-2 overflow-x-auto scrollbar-hide no-scrollbar">
                   {[
                     { id: 'all', label: 'All Posts' },
                     { id: 'skill_offer', label: 'Offering' },
@@ -391,10 +473,10 @@ const SocialFeed: React.FC = () => {
                       key={filter.id}
                       onClick={() => setFilterType(filter.id)}
                       className={cn(
-                        "whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-medium transition-all border",
+                        "whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-all",
                         filterType === filter.id
-                          ? "bg-gray-900 text-white border-gray-900"
-                          : "bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                          ? "bg-green-600 text-white"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                       )}
                     >
                       {filter.label}
@@ -407,7 +489,30 @@ const SocialFeed: React.FC = () => {
             {/* Posts Feed */}
             {filteredPosts.length === 0 ? (
               <div className="bg-white rounded-lg border border-gray-200 p-12 text-center shadow-sm">
-                {loading ? (
+                {error ? (
+                  // Show error state with retry button
+                  <div className="flex flex-col items-center">
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <AlertCircle className="w-8 h-8 text-red-600" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">Failed to load posts</h3>
+                    <p className="text-gray-600 mb-6 max-w-md">{error}</p>
+                    <div className="flex gap-3">
+                      <Button
+                        onClick={retryLoad}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        Try Again
+                      </Button>
+                      <Button
+                        onClick={() => navigate("/")}
+                        variant="outline"
+                      >
+                        Go Home
+                      </Button>
+                    </div>
+                  </div>
+                ) : loading ? (
                   // Show loading spinner on initial load
                   <div className="flex flex-col items-center">
                     <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -468,7 +573,13 @@ const SocialFeed: React.FC = () => {
                                 </h3>
                                 <span className="text-gray-300 hidden sm:inline">•</span>
                                 <span className="text-[13px] text-gray-500 hidden sm:inline">
-                                  {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+                                  {(() => {
+                                    try {
+                                      return formatDistanceToNow(new Date(post.created_at), { addSuffix: true });
+                                    } catch (e) {
+                                      return 'recently';
+                                    }
+                                  })()}
                                 </span>
                               </div>
                               <div className="flex items-center gap-2">
@@ -493,6 +604,13 @@ const SocialFeed: React.FC = () => {
                                 >
                                   <Trash2 className="w-4 h-4 mr-2" />
                                   Delete Post
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="cursor-pointer"
+                                  onClick={() => navigate('/create-post', { state: { postToEdit: post } })}
+                                >
+                                  <Pencil className="w-4 h-4 mr-2" />
+                                  Edit Post
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -586,7 +704,13 @@ const SocialFeed: React.FC = () => {
                               {post.deadline && (
                                 <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-gray-50 text-gray-700">
                                   <Calendar className="w-4 h-4" />
-                                  <span>Due {new Date(post.deadline).toLocaleDateString()}</span>
+                                  <span>Due {(() => {
+                                    try {
+                                      return new Date(post.deadline).toLocaleDateString();
+                                    } catch (e) {
+                                      return 'Invalid Date';
+                                    }
+                                  })()}</span>
                                 </div>
                               )}
                             </div>

@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/contexts/ProfileContext';
 import { usePosts, type Comment } from '@/contexts/PostsContext';
 import { EmailVerificationNotice } from '@/components/EmailVerificationNotice';
+import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import {
   Send,
@@ -32,7 +33,8 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
 }) => {
   const { user, isEmailVerified } = useAuth();
   const { addComment, deleteComment, loadComments } = usePosts();
-  const { profile } = useProfile();
+  const { profile, isProfileComplete } = useProfile();
+  const navigate = useNavigate();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -125,45 +127,60 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
           {/* Add Comment Form */}
           {user ? (
             isEmailVerified ? (
-              <div className="bg-white rounded-lg border border-gray-200 p-4">
-                <div className="space-y-3">
-                  <div className="flex items-start space-x-3">
-                    <img
-                      src={profile?.profile_picture || user.user_metadata?.avatar_url || ""}
-                      alt="Your profile"
-                      className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                    />
-                    <div className="flex-1">
-                      <textarea
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        placeholder="Write a comment..."
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
-                        rows={2}
-                        maxLength={500}
+              isProfileComplete ? (
+                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                  <div className="space-y-3">
+                    <div className="flex items-start space-x-3">
+                      <img
+                        src={profile?.profile_picture || user.user_metadata?.avatar_url || ""}
+                        alt="Your profile"
+                        className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                       />
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-xs text-gray-500">
-                          {newComment.length}/500
-                        </span>
-                        <Button
-                          type="button"
-                          disabled={!newComment.trim() || isSubmitting}
-                          size="sm"
-                          className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 text-sm"
-                          onClick={handleSubmitComment}
-                        >
-                          {isSubmitting ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Send className="w-4 h-4" />
-                          )}
-                        </Button>
+                      <div className="flex-1">
+                        <textarea
+                          value={newComment}
+                          onChange={(e) => setNewComment(e.target.value)}
+                          placeholder="Write a comment..."
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
+                          rows={2}
+                          maxLength={500}
+                        />
+                        <div className="flex items-center justify-between mt-2">
+                          <span className="text-xs text-gray-500">
+                            {newComment.length}/500
+                          </span>
+                          <Button
+                            type="button"
+                            disabled={!newComment.trim() || isSubmitting}
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 text-sm"
+                            onClick={handleSubmitComment}
+                          >
+                            {isSubmitting ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Send className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <p className="text-sm text-amber-800 mb-2">
+                    Complete your profile to comment on posts
+                  </p>
+                  <Button
+                    size="sm"
+                    onClick={() => navigate('/edit-profile')}
+                    className="bg-amber-600 hover:bg-amber-700 text-white"
+                  >
+                    Complete Profile
+                  </Button>
+                </div>
+              )
             ) : (
               <EmailVerificationNotice />
             )

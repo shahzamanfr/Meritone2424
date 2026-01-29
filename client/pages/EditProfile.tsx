@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/contexts/ProfileContext";
 import { PageLoader, ButtonLoader } from "@/components/ui/loading-spinner";
+import { BackButton } from "@/components/BackButton";
 
 type ExperienceLevel = "beginner" | "intermediate" | "advanced" | "expert";
 type Availability = "full_time" | "part_time" | "project_based";
@@ -243,24 +244,7 @@ const EditProfile: React.FC = () => {
         <div className="max-w-4xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3 sm:space-x-4 min-w-0 flex-1">
-              <button
-                onClick={() => navigate("/profile")}
-                className="text-gray-600 hover:text-green-600 transition-colors p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg flex-shrink-0"
-              >
-                <svg
-                  className="w-4 h-4 sm:w-5 sm:h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
+              <BackButton onClick={() => navigate("/profile")} />
               <h1 className="text-lg sm:text-xl font-bold text-gray-900 truncate">Edit Profile</h1>
             </div>
           </div>

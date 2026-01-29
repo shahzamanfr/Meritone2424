@@ -114,6 +114,13 @@ export type Database = {
           experience_level: 'beginner' | 'intermediate' | 'advanced' | 'expert' | null
           availability: 'full_time' | 'part_time' | 'project_based' | null
           preferred_work: 'online' | 'offline' | 'both' | null
+          show_email: boolean
+          show_location: boolean
+          is_public: boolean
+          email_notifications: boolean
+          push_notifications: boolean
+          message_notifications: boolean
+          trade_notifications: boolean
           created_at: string
           updated_at: string
         }
@@ -132,6 +139,13 @@ export type Database = {
           experience_level?: 'beginner' | 'intermediate' | 'advanced' | 'expert' | null
           availability?: 'full_time' | 'part_time' | 'project_based' | null
           preferred_work?: 'online' | 'offline' | 'both' | null
+          show_email?: boolean
+          show_location?: boolean
+          is_public?: boolean
+          email_notifications?: boolean
+          push_notifications?: boolean
+          message_notifications?: boolean
+          trade_notifications?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -150,6 +164,13 @@ export type Database = {
           experience_level?: 'beginner' | 'intermediate' | 'advanced' | 'expert' | null
           availability?: 'full_time' | 'part_time' | 'project_based' | null
           preferred_work?: 'online' | 'offline' | 'both' | null
+          show_email?: boolean
+          show_location?: boolean
+          is_public?: boolean
+          email_notifications?: boolean
+          push_notifications?: boolean
+          message_notifications?: boolean
+          trade_notifications?: boolean
           created_at?: string
           updated_at?: string
         }

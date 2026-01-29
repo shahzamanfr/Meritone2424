@@ -4,6 +4,7 @@ import { MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProfile } from "@/contexts/ProfileContext";
 import { useToast } from "@/hooks/use-toast";
 
 type Props = {
@@ -15,6 +16,7 @@ type Props = {
 
 export const MessageButton: React.FC<Props> = ({ userId, userName, className, variant = "outline" }) => {
   const { user } = useAuth();
+  const { isProfileComplete } = useProfile();
   const navigate = useNavigate();
   const { toast } = useToast();
   const isInvalidTarget = !userId || userId === "current-user";
@@ -34,6 +36,17 @@ export const MessageButton: React.FC<Props> = ({ userId, userName, className, va
             description: "You cannot start a conversation with your own account.",
             variant: "destructive",
           });
+          return;
+        }
+
+        // Check if profile is complete
+        if (!isProfileComplete) {
+          toast({
+            title: "Complete your profile",
+            description: "Please add a bio and at least one skill to send messages",
+            variant: "destructive"
+          });
+          navigate('/edit-profile');
           return;
         }
 

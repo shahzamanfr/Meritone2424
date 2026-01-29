@@ -147,6 +147,31 @@ export class TradesService {
     }
   }
 
+  // Update an existing trade
+  static async updateTrade(id: string, updates: Partial<TradeInsert>): Promise<{ data: TradeWithComments | null; error: string | null }> {
+    try {
+      const { error: updateError } = await supabase
+        .from('trades')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (updateError) {
+        console.error('Error updating trade:', updateError);
+        return { data: null, error: updateError.message };
+      }
+
+      // Fetch the full updated object with comments
+      return await this.getTradeById(id);
+
+    } catch (error) {
+      console.error('Error in updateTrade:', error);
+      return { data: null, error: 'Failed to update trade' };
+    }
+  }
+
   // Update trade status
   static async updateTradeStatus(id: string, status: 'Open' | 'Closed' | 'Assigned' | 'Completed'): Promise<{ error: string | null }> {
     try {

@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePosts } from '@/contexts/PostsContext';
+import { usePosts, Post } from '@/contexts/PostsContext';
 import { useProfile } from '@/contexts/ProfileContext';
 import { X, Image, Video, File, Plus, Trash2, Upload, Briefcase, Search } from 'lucide-react';
 import { BackButton } from '@/components/BackButton';
@@ -33,7 +33,7 @@ const CreatePost: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, isEmailVerified, loading } = useAuth();
   const { profile, hasProfile } = useProfile();
-  const { createPost } = usePosts();
+  const { createPost, updatePost } = usePosts();
   const [step, setStep] = useState(1);
   const [currentSkill, setCurrentSkill] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,6 +55,31 @@ const CreatePost: React.FC = () => {
       previews: []
     }
   });
+
+  const location = useLocation();
+  const postToEdit = location.state?.postToEdit as Post | undefined;
+
+  // Initialize with existing post data if editing
+  React.useEffect(() => {
+    if (postToEdit) {
+      setPostData({
+        type: postToEdit.post_type as PostType,
+        title: postToEdit.title,
+        description: postToEdit.content,
+        skills: postToEdit.skills_offered?.length ? postToEdit.skills_offered : (postToEdit.skills_needed || []),
+        experienceLevel: (postToEdit.experience_level as ExperienceLevel) || 'intermediate',
+        availability: (postToEdit.availability as Availability) || 'project_based',
+        deadline: postToEdit.deadline || '',
+        budget: '', // Budget not currently stored in Post model explicitly or handled differently
+        location: '', // Location not currently in Post model explicitly
+        media: {
+          files: [],
+          previews: postToEdit.media_urls || []
+        }
+      });
+      setStep(2); // Skip type selection step when editing
+    }
+  }, [postToEdit]);
 
   // Redirect if not authenticated or email not verified (wait for loading first)
   if (loading) {
@@ -86,13 +111,46 @@ const CreatePost: React.FC = () => {
                 >
                   <X className="w-5 h-5" />
                 </button>
-                <h1 className="text-xl font-bold text-gray-900">Create Post</h1>
+                <h1 className="text-xl font-bold text-gray-900">{postToEdit ? 'Edit Post' : 'Create Post'}</h1>
               </div>
             </div>
           </div>
         </div>
         <div className="max-w-3xl mx-auto py-8 px-4">
           <EmailVerificationNotice />
+        </div>
+      </div>
+    );
+  }
+
+  // Check if profile is complete
+  const { isProfileComplete } = useProfile();
+  if (!isProfileComplete) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+          <div className="max-w-4xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <BackButton />
+                <h1 className="text-xl font-bold text-gray-900">{postToEdit ? 'Edit Post' : 'Create Post'}</h1>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="max-w-3xl mx-auto py-8 px-4">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-amber-900 mb-2">Complete Your Profile</h2>
+            <p className="text-amber-800 mb-4">
+              You need to complete your profile before creating posts. Please add a bio and at least one skill to continue.
+            </p>
+            <Button
+              onClick={() => navigate('/edit-profile')}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              Complete Profile
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -223,6 +281,44 @@ const CreatePost: React.FC = () => {
     }
   };
 
+  const handleUpdate = async () => {
+    if (!postToEdit) return;
+
+    try {
+      setIsSubmitting(true);
+
+      const updates = {
+        title: postData.title,
+        content: postData.description,
+        post_type: postData.type,
+        skills_offered: postData.type === 'skill_request' ? postData.skills : [],
+        skills_needed: postData.type === 'skill_offer' || postData.type === 'project' ? postData.skills : [],
+        experience_level: postData.type === 'general' ? null : postData.experienceLevel,
+        availability: postData.type === 'general' ? null : postData.availability,
+        deadline: postData.deadline ? new Date(postData.deadline).toISOString() : null,
+        media_urls: postData.media?.previews || [],
+        updated_at: new Date().toISOString()
+      };
+
+      const { error, success } = await updatePost(postToEdit.id, updates);
+
+      if (error) {
+        alert(`Failed to update post: ${error}`);
+        return;
+      }
+
+      if (success) {
+        alert('Post updated successfully!');
+        navigate('/feed');
+      }
+    } catch (error) {
+      console.error('Error updating post:', error);
+      alert('An error occurred while updating your post');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const canProceed = () => {
     if (step === 1) return true;
     if (step === 2) {
@@ -275,7 +371,7 @@ const CreatePost: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <BackButton />
-              <h1 className="text-xl font-bold text-gray-900">Create Post</h1>
+              <h1 className="text-xl font-bold text-gray-900">{postToEdit ? 'Edit Post' : 'Create Post'}</h1>
             </div>
 
             <div className="flex items-center space-x-2">
@@ -693,14 +789,14 @@ const CreatePost: React.FC = () => {
               {/* Navigation */}
               <div className="flex justify-between">
                 <Button
-                  onClick={() => setStep(1)}
+                  onClick={() => postToEdit ? navigate(-1) : setStep(1)}
                   variant="outline"
                   className="px-6 py-3 transition-colors"
                 >
-                  Back
+                  {postToEdit ? 'Cancel' : 'Back'}
                 </Button>
                 <Button
-                  onClick={handleSubmit}
+                  onClick={postToEdit ? handleUpdate : handleSubmit}
                   disabled={!canProceed() || isSubmitting}
                   className="px-8 py-3 bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200"
                 >
@@ -710,7 +806,7 @@ const CreatePost: React.FC = () => {
                       Publishing...
                     </>
                   ) : (
-                    'Publish Post'
+                    postToEdit ? 'Update Post' : 'Publish Post'
                   )}
                 </Button>
               </div>

@@ -21,17 +21,21 @@ export const ImageCarouselComponent: React.FC<ImageCarouselProps> = ({ images, r
 
     if (images.length === 1) {
         return (
-            <div className="relative overflow-hidden rounded-lg max-h-[500px]">
-                {renderMedia(images[0], 0)}
+            <div className="relative w-full" style={{ aspectRatio: '4/5', maxHeight: '600px' }}>
+                <div className="absolute inset-0 bg-gray-100 rounded-lg overflow-hidden">
+                    {renderMedia(images[0], 0)}
+                </div>
             </div>
         );
     }
 
     return (
         <div className="relative group">
-            {/* Main Image Container */}
-            <div className="relative overflow-hidden rounded-lg max-h-[500px] bg-black">
-                {renderMedia(images[currentIndex], currentIndex)}
+            {/* Main Image Container with Fixed Aspect Ratio */}
+            <div className="relative w-full" style={{ aspectRatio: '4/5', maxHeight: '600px' }}>
+                <div className="absolute inset-0 bg-gray-100 rounded-lg overflow-hidden">
+                    {renderMedia(images[currentIndex], currentIndex)}
+                </div>
             </div>
 
             {/* Previous Button */}

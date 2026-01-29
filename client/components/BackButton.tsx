@@ -1,5 +1,5 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -15,14 +15,34 @@ export const BackButton: React.FC<BackButtonProps> = ({
     className = ''
 }) => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const navigationAttempted = useRef(false);
 
     const handleClick = () => {
         if (onClick) {
             onClick();
         } else {
+            // Store current path
+            const currentPath = location.pathname;
+
+            // Try to go back
             navigate(-1);
+
+            // Set a timeout to check if navigation actually happened
+            // If we're still on the same page after a short delay, go to homepage
+            setTimeout(() => {
+                if (window.location.pathname === currentPath && !navigationAttempted.current) {
+                    navigationAttempted.current = true;
+                    navigate('/');
+                }
+            }, 100);
         }
     };
+
+    // Reset the flag when location changes
+    useEffect(() => {
+        navigationAttempted.current = false;
+    }, [location]);
 
     return (
         <Button

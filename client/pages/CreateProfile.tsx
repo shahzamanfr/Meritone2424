@@ -12,6 +12,7 @@ import { X, Upload, Plus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/contexts/ProfileContext";
 import { useNavigate } from "react-router-dom";
+import { BackButton } from "@/components/BackButton";
 
 type ProfileFormData = {
   name: string;
@@ -181,8 +182,20 @@ export default function CreateProfile() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4 max-w-2xl">
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <BackButton />
+              <h1 className="text-xl font-bold text-gray-900">Create Your Profile</h1>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 max-w-2xl py-8">
         <Card>
           <CardHeader>
             <CardTitle>Create Your MeritOne Profile</CardTitle>

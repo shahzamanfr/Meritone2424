@@ -24,7 +24,8 @@ import {
   Search,
   ChevronUp,
   ChevronDown,
-  Send
+  Send,
+  Pencil
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
@@ -44,7 +45,7 @@ interface NewTradeData {
 const Trades: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user, isEmailVerified } = useAuth();
-  const { profile, hasProfile } = useProfile();
+  const { profile, hasProfile, isProfileComplete } = useProfile();
 
   const [activeView, setActiveView] = useState<'list' | 'new-trade'>('list');
   const [trades, setTrades] = useState<Trade[]>([]);
@@ -61,6 +62,7 @@ const Trades: React.FC = () => {
     location: '',
     deadline: ''
   });
+  const [editingTradeId, setEditingTradeId] = useState<string | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expandedTradeId, setExpandedTradeId] = useState<string | null>(null);
@@ -130,9 +132,9 @@ const Trades: React.FC = () => {
       return;
     }
 
-    if (!hasProfile) {
-      setError('Please create a profile first');
-      navigate('/create-profile');
+    if (!isProfileComplete) {
+      setError('Please complete your profile first (add bio and at least one skill)');
+      navigate('/edit-profile');
       return;
     }
 
@@ -166,15 +168,7 @@ const Trades: React.FC = () => {
         return;
       }
 
-      if (skillOffered.length > 50) {
-        setError('Skill offered must be less than 50 characters');
-        return;
-      }
 
-      if (skillWanted.length > 50) {
-        setError('Skill wanted must be less than 50 characters');
-        return;
-      }
 
       // We guarded against !isAuthenticated earlier, so user and user.id must exist
       if (!user?.id) {
@@ -182,20 +176,48 @@ const Trades: React.FC = () => {
         return;
       }
 
-      const { data: createdTrade, error } = await TradesService.createTrade({
-        title,
-        description,
-        skillOffered,
-        skillWanted,
-        userId: user.id,
-        userDisplayName: profile?.name || 'Anonymous User',
-        location: newTrade.location?.trim(),
-        deadline: newTrade.deadline
-      });
+      if (editingTradeId) {
+        // Update existing trade
+        const { data: updatedTrade, error } = await TradesService.updateTrade(editingTradeId, {
+          title,
+          description: description || null,
+          skill_offered: skillOffered,
+          skill_wanted: skillWanted,
+          location: newTrade.location?.trim() || null,
+          deadline: newTrade.deadline || null
+        });
 
-      if (error) {
-        setError(error);
-        return;
+        if (error) {
+          setError(error);
+          return;
+        }
+
+        if (updatedTrade) {
+          setTrades(prev => prev.map(t => t.id === editingTradeId ? updatedTrade : t));
+        }
+
+        setEditingTradeId(null);
+      } else {
+        // Create new trade
+        const { data: createdTrade, error } = await TradesService.createTrade({
+          title,
+          description,
+          skillOffered,
+          skillWanted,
+          userId: user.id,
+          userDisplayName: profile?.name || 'Anonymous User',
+          location: newTrade.location?.trim(),
+          deadline: newTrade.deadline
+        });
+
+        if (error) {
+          setError(error);
+          return;
+        }
+
+        if (createdTrade) {
+          setTrades(prev => [createdTrade, ...prev]);
+        }
       }
 
       setNewTrade({
@@ -349,7 +371,23 @@ const Trades: React.FC = () => {
             </div>
 
             <Button
-              onClick={() => setActiveView('new-trade')}
+              onClick={() => {
+                if (!isProfileComplete) {
+                  setError('Please complete your profile first (add bio and at least one skill)');
+                  navigate('/edit-profile');
+                  return;
+                }
+                setEditingTradeId(null);
+                setNewTrade({
+                  title: '',
+                  description: '',
+                  skillOffered: '',
+                  skillWanted: '',
+                  location: '',
+                  deadline: ''
+                });
+                setActiveView('new-trade');
+              }}
               className="bg-green-700 hover:bg-green-800 text-white w-full sm:w-auto"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -488,9 +526,29 @@ const Trades: React.FC = () => {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        {/* Owner Actions: Close/Reopen Trade */}
+                        {/* Owner Actions: Close/Reopen/Edit Trade */}
                         {user?.id === trade.user_id && (
                           <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs px-3 rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-all duration-300 shadow-sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingTradeId(trade.id);
+                                setNewTrade({
+                                  title: trade.title,
+                                  description: trade.description || '',
+                                  skillOffered: trade.skill_offered,
+                                  skillWanted: trade.skill_wanted,
+                                  location: trade.location || '',
+                                  deadline: trade.deadline ? new Date(trade.deadline).toISOString().split('T')[0] : ''
+                                });
+                                setActiveView('new-trade');
+                              }}
+                            >
+                              <Pencil className="w-3 h-3 mr-1" /> Edit
+                            </Button>
                             {trade.status === 'Open' && (
                               <Button
                                 size="sm"
@@ -602,44 +660,59 @@ const Trades: React.FC = () => {
                         {/* Add Comment Form */}
                         {isAuthenticated ? (
                           isEmailVerified ? (
-                            <form
-                              onSubmit={(e) => handleAddInlineComment(trade.id, e)}
-                              className="flex items-start gap-2 pt-1 pb-1"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <Avatar className="h-8 w-8 shrink-0 border border-slate-200">
-                                <AvatarImage src={profile?.profile_picture || undefined} />
-                                <AvatarFallback className="text-[10px] bg-slate-100 text-slate-600 font-semibold">
-                                  {profile?.name?.charAt(0).toUpperCase() || 'U'}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex-1 flex gap-2">
-                                <Textarea
-                                  value={tradeCommentTexts[trade.id] || ''}
-                                  onChange={(e) => {
-                                    e.stopPropagation();
-                                    setTradeCommentTexts(prev => ({ ...prev, [trade.id]: e.target.value }));
-                                  }}
-                                  placeholder="Write a comment..."
-                                  rows={1}
-                                  className="flex-1 text-sm resize-none rounded-2xl bg-white border-slate-200 focus:ring-1 focus:ring-slate-300 min-h-[38px] py-2"
-                                  onClick={(e) => e.stopPropagation()}
-                                />
+                            isProfileComplete ? (
+                              <form
+                                onSubmit={(e) => handleAddInlineComment(trade.id, e)}
+                                className="flex items-start gap-2 pt-1 pb-1"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Avatar className="h-8 w-8 shrink-0 border border-slate-200">
+                                  <AvatarImage src={profile?.profile_picture || undefined} />
+                                  <AvatarFallback className="text-[10px] bg-slate-100 text-slate-600 font-semibold">
+                                    {profile?.name?.charAt(0).toUpperCase() || 'U'}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 flex gap-2">
+                                  <Textarea
+                                    value={tradeCommentTexts[trade.id] || ''}
+                                    onChange={(e) => {
+                                      e.stopPropagation();
+                                      setTradeCommentTexts(prev => ({ ...prev, [trade.id]: e.target.value }));
+                                    }}
+                                    placeholder="Write a comment..."
+                                    rows={1}
+                                    className="flex-1 text-sm resize-none rounded-2xl bg-white border-slate-200 focus:ring-1 focus:ring-slate-300 min-h-[38px] py-2"
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                  <Button
+                                    type="submit"
+                                    size="sm"
+                                    disabled={isSubmitting || !tradeCommentTexts[trade.id]?.trim()}
+                                    className="bg-slate-900 hover:bg-black text-white rounded-full h-9 w-9 p-0 flex-shrink-0"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {isSubmitting ? (
+                                      <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                      <Send className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </div>
+                              </form>
+                            ) : (
+                              <div className="pt-1 pb-1 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                                <p className="text-xs text-amber-800 mb-2">
+                                  Complete your profile to comment on trades
+                                </p>
                                 <Button
-                                  type="submit"
                                   size="sm"
-                                  disabled={isSubmitting || !tradeCommentTexts[trade.id]?.trim()}
-                                  className="bg-slate-900 hover:bg-black text-white rounded-full h-9 w-9 p-0 flex-shrink-0"
-                                  onClick={(e) => e.stopPropagation()}
+                                  onClick={() => navigate('/edit-profile')}
+                                  className="bg-amber-600 hover:bg-amber-700 text-white h-7 text-xs"
                                 >
-                                  {isSubmitting ? (
-                                    <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                  ) : (
-                                    <Send className="h-4 w-4" />
-                                  )}
+                                  Complete Profile
                                 </Button>
                               </div>
-                            </form>
+                            )
                           ) : (
                             <div className="pt-1 pb-1">
                               <EmailVerificationNotice />
@@ -721,7 +794,7 @@ const Trades: React.FC = () => {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
-            <h1 className="text-2xl font-bold text-gray-900">Create New Trade</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{editingTradeId ? 'Edit Trade' : 'Create New Trade'}</h1>
           </div>
         </div>
       </div>
