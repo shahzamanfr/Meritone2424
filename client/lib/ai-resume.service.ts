@@ -77,8 +77,22 @@ export async function generateResumeWithAI(input: AIResumeRequest): Promise<AIRe
   return generateFallbackResume(input);
 }
 
+// Helper to get Groq API Key
+function getGroqApiKey(): string | null {
+  // 1. From localStorage (user-provided in Settings)
+  const savedKey = localStorage.getItem('groq_api_key');
+  if (savedKey) return savedKey;
+
+  // 2. From environment variable (Vite prefix)
+  return import.meta.env.VITE_GROQ_API_KEY || null;
+}
+
 // Helper to improve specific text (e.g. a bullet point)
 export async function generateResumeImprovement(text: string, instruction: string = "Make it more professional"): Promise<string> {
+  const apiKey = getGroqApiKey();
+  if (!apiKey) {
+    throw new Error('Groq API key not found. Please set it in Settings.');
+  }
 
   const prompt = `
 You are an expert resume writer and ATS optimization specialist.
@@ -114,18 +128,19 @@ Return ONLY the improved text, no explanations or quotes.
       max_tokens: 200
     };
 
-    const response = await fetch('/api/groq', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey.trim()}`
       },
       body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('Groq Proxy error:', response.status, errorData);
-      const message = typeof errorData.error === 'string' ? errorData.error : (errorData.error?.message || `Error: ${response.status}`);
+      console.error('Groq API error:', response.status, errorData);
+      const message = errorData.error?.message || `Error: ${response.status}`;
       throw new Error(message);
     }
 
@@ -150,6 +165,8 @@ Return ONLY the improved text, no explanations or quotes.
 
 // Generate professional bullet points for work experience
 export async function generateBulletPoints(role: string, company: string, description: string = ""): Promise<string[]> {
+  const apiKey = getGroqApiKey();
+  if (!apiKey) return [];
 
   const prompt = `Generate 3-4 professional, ATS-optimized bullet points for this role:
 
@@ -180,19 +197,19 @@ Return ONLY the bullet points, one per line, without bullet symbols or numbers.`
       max_tokens: 300
     };
 
-    const response = await fetch('/api/groq', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey.trim()}`
       },
       body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('Groq Proxy error:', response.status, errorData);
-      const message = typeof errorData.error === 'string' ? errorData.error : (errorData.error?.message || 'API error');
-      throw new Error(message);
+      console.error('Groq API error:', response.status, errorData);
+      throw new Error('API error');
     }
 
     const data = await response.json();
@@ -216,45 +233,20 @@ Return ONLY the bullet points, one per line, without bullet symbols or numbers.`
 }
 
 async function callGroqAPIForResume(input: AIResumeRequest): Promise<AIResumeResponse> {
+  const apiKey = getGroqApiKey();
+  if (!apiKey) throw new Error('Groq API key not found');
+
   const prompt = `
 You are an expert resume writer. Create a professional, detailed, and ATS-friendly resume.
-
-INPUT:
-- Name: ${input.full_name}
-- Headline: ${input.headline || ''}
-- Email: ${input.email || ''}
-- Phone: ${input.phone || ''}
-- Location: ${input.location || 'Hyderabad, India'}
-- Summary: ${input.summary || ''}
-- Education: ${input.education || ''}
-- Skills: ${input.skills || ''}
-- Experience: ${input.experience || ''}
-- Projects: ${input.projects || ''}
-- Achievements: ${input.achievements || ''}
-- Certifications: ${input.certifications || ''}
-
-Return ONLY a valid JSON object with this EXACT structure:
-{
-  "full_name": "string",
-  "headline": "string",
-  "email": "string",
-  "phone": "string",
-  "location": "string",
-  "summary": "string",
-  "education": [{"school": "string", "degree": "string", "duration": "string", "details": "string"}],
-  "technical_skills": [{"section": "string", "items": ["string"]}],
-  "experience": [{"company": "string", "role": "string", "duration": "string", "bullets": ["string"]}],
-  "projects": [{"name": "string", "description": "string", "bullets": ["string"]}],
-  "achievements": ["string"],
-  "certifications": [{"name": "string", "issuer": "string", "year": "string"}]
-}
+...
 `;
 
   try {
-    const response = await fetch('/api/groq', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey.trim()}`
       },
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",
@@ -275,7 +267,7 @@ Return ONLY a valid JSON object with this EXACT structure:
 
     if (!response.ok) {
       const errorData = await response.json();
-      const message = typeof errorData.error === 'string' ? errorData.error : (errorData.error?.message || `Proxy error: ${response.status}`);
+      const message = errorData.error?.message || `API error: ${response.status}`;
       throw new Error(message);
     }
 
@@ -499,11 +491,17 @@ Return a JSON object with this EXACT structure:
 IMPORTANT: Return ONLY valid JSON, no additional text.
 `;
 
+  const apiKey = getGroqApiKey();
+  if (!apiKey) {
+    throw new Error("Groq API key not found. Please set it in Settings.");
+  }
+
   try {
-    const response = await fetch('/api/groq', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey.trim()}`
       },
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",
@@ -524,7 +522,7 @@ IMPORTANT: Return ONLY valid JSON, no additional text.
 
     if (!response.ok) {
       const errorData = await response.json();
-      const message = typeof errorData.error === 'string' ? errorData.error : (errorData.error?.message || "Proxy Request Failed");
+      const message = errorData.error?.message || "API Request Failed";
       throw new Error(message);
     }
 
@@ -604,6 +602,11 @@ export interface ResumeScanResult {
  * Analyzes entire resume and provides detailed suggestions
  */
 export async function scanCompleteResume(resume: Partial<Resume>): Promise<ResumeScanResult> {
+  const apiKey = getGroqApiKey();
+  if (!apiKey) {
+    console.warn('⚠️ Groq API key not found, using fallback scan');
+    return generateFallbackScan(resume);
+  }
 
   // Build comprehensive resume text for analysis
   const resumeText = buildResumeText(resume);
@@ -669,10 +672,11 @@ RETURN JSON ONLY (No markdown, no preamble):
 }`;
 
   try {
-    const response = await fetch('/api/groq', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey.trim()}`
       },
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",
@@ -690,13 +694,13 @@ RETURN JSON ONLY (No markdown, no preamble):
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('❌ Groq Proxy error:', response.status, errorData);
+      console.error('❌ Groq API error:', response.status, errorData);
       console.warn('⚠️ Falling back to hardcoded scoring');
       return generateFallbackScan(resume);
     }
 
     const data = await response.json();
-    console.log('✅ Groq Proxy response received');
+    console.log('✅ Groq API response received');
     const resultText = data.choices?.[0]?.message?.content?.trim();
 
     if (!resultText) {

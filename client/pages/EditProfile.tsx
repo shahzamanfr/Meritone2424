@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/contexts/ProfileContext";
 import { PageLoader, ButtonLoader } from "@/components/ui/loading-spinner";
-import { BackButton } from "@/components/BackButton";
+import { ArrowLeft, Check, Edit2 } from "lucide-react";
 
 type ExperienceLevel = "beginner" | "intermediate" | "advanced" | "expert";
 type Availability = "full_time" | "part_time" | "project_based";
@@ -241,25 +241,31 @@ const EditProfile: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3 sm:space-x-4 min-w-0 flex-1">
-              <BackButton onClick={() => navigate("/profile")} />
-              <h1 className="text-lg sm:text-xl font-bold text-gray-900 truncate">Edit Profile</h1>
+        <div className="max-w-4xl mx-auto px-4 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center space-x-3 min-w-0 flex-1">
+              <button
+                onClick={() => navigate("/profile")}
+                className="text-muted-foreground hover:text-foreground transition-colors p-2 hover:bg-gray-100 rounded-lg shrink-0"
+              >
+                <ArrowLeft className="w-5 h-5 text-gray-600" />
+              </button>
+              <h1 className="text-xl font-bold text-gray-900 truncate">Edit Profile</h1>
             </div>
+            {/* Optional Save button in header for desktop if needed */}
           </div>
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto py-4 sm:py-8 px-3 sm:px-4">
+      <div className="max-w-3xl mx-auto py-4 sm:py-8 px-4 sm:px-4">
         {/* Success Message */}
         {successMessage && (
-          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="mb-6 bg-green-50/50 border border-green-200 rounded-xl p-4 shadow-sm animate-in fade-in slide-in-from-top-2">
             <div className="flex items-center">
-              <svg className="w-5 h-5 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <span className="text-green-800 font-medium">{successMessage}</span>
+              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3 shrink-0">
+                <Check className="w-5 h-5 text-green-600" />
+              </div>
+              <span className="text-green-800 font-semibold">{successMessage}</span>
             </div>
           </div>
         )}
@@ -367,7 +373,8 @@ const EditProfile: React.FC = () => {
                       name: e.target.value,
                     }));
                   }}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm sm:text-base"
+                  placeholder="Your full name"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 text-base transition-all bg-gray-50/50 focus:bg-white"
                 />
               </div>
 
@@ -602,32 +609,27 @@ const EditProfile: React.FC = () => {
             </div>
           </div>
 
-          {/* Save Button */}
-          <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4">
+          <div className="flex flex-col sm:flex-row justify-end items-center gap-3 pt-4">
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               onClick={() => navigate("/profile")}
-              className="px-4 sm:px-6 w-full sm:w-auto order-2 sm:order-1"
+              className="w-full sm:w-auto order-2 sm:order-1 font-semibold text-gray-500 hover:text-gray-900"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="px-6 sm:px-8 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto order-1 sm:order-2"
+              className="w-full sm:w-auto order-1 sm:order-2 bg-green-600 hover:bg-green-700 text-white font-bold h-12 px-10 rounded-xl shadow-lg shadow-green-600/20 disabled:opacity-50 transition-all active:scale-95"
             >
               {isSubmitting ? (
-                <>
+                <div className="flex items-center gap-2">
                   <ButtonLoader size="sm" />
-                  <span className="ml-2 hidden sm:inline">Saving...</span>
-                  <span className="ml-2 sm:hidden">Saving...</span>
-                </>
+                  <span>Saving...</span>
+                </div>
               ) : (
-                <>
-                  <span className="hidden sm:inline">Save Changes</span>
-                  <span className="sm:hidden">Save</span>
-                </>
+                "Save Changes"
               )}
             </Button>
           </div>

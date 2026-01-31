@@ -396,10 +396,15 @@ export default function EditResumePage() {
               size="sm"
               onClick={handleScanResume}
               disabled={isScanning || !resume.full_name}
-              className="hidden sm:flex items-center gap-1.5 text-xs sm:text-sm bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 px-2 sm:px-3 h-9 font-medium shadow-sm transition-all"
+              className="flex items-center gap-1.5 text-xs sm:text-sm bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 px-2 sm:px-3 h-9 font-medium shadow-sm transition-all"
             >
-              {isScanning ? <Loader2 className="animate-spin" size={16} /> : <ClipboardCheck size={16} className="text-green-600" />}
-              <span>Audit Resume</span>
+              {isScanning ? (
+                <Loader2 className="animate-spin" size={16} />
+              ) : (
+                <ClipboardCheck size={16} className="text-green-600" />
+              )}
+              <span className="hidden min-[450px]:inline">Audit Resume</span>
+              <span className="min-[450px]:hidden">Audit</span>
             </Button>
 
             {/* Secondary Actions - Now visible on mobile */}

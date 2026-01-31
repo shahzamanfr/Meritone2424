@@ -32,7 +32,9 @@ import {
   Search,
   Globe,
   Settings,
-  Lock
+  Lock,
+  MapPin,
+  Edit2
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -666,92 +668,58 @@ const Profile: React.FC = () => {
     <div className="min-h-screen bg-background">
       {/* Header for other user's profile */}
       {isViewingOtherUser && (
-        <div className="bg-white border-b border-gray-200 px-3 sm:px-4 py-3">
-          <div className="container mx-auto flex items-center justify-between">
+        <div className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-[51]">
+          <div className="max-w-5xl mx-auto flex items-center justify-between">
             <Button
               variant="ghost"
               onClick={() => navigate(-1)}
-              className="flex items-center space-x-1 sm:space-x-2 p-2"
+              className="flex items-center space-x-2 -ml-2 p-2 hover:bg-gray-100 rounded-lg shrink-0"
               size="sm"
             >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Back</span>
+              <ArrowLeft className="w-5 h-5 text-gray-600" />
+              <span className="hidden sm:inline text-gray-700 font-medium">Back</span>
             </Button>
-            <h1 className="text-base sm:text-lg font-semibold text-gray-900 truncate px-2">
+            <h1 className="text-base sm:text-lg font-bold text-gray-900 truncate px-4 flex-1 text-center">
               {currentProfile?.name || "User"}'s Profile
             </h1>
-            <div className="w-12 sm:w-20"></div> {/* Spacer for centering */}
+            <div className="w-10 sm:w-16"></div> {/* Spacer for centering */}
           </div>
         </div>
       )}
 
-      {/* Header */}
-      <div className="bg-white border-b border-border sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
-              <div className="flex items-center space-x-1 sm:space-x-2">
+      {/* Header for own profile */}
+      {!isViewingOtherUser && (
+        <div className="bg-white border-b border-border sticky top-0 z-50">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center space-x-2 min-w-0 flex-1">
                 <button
                   onClick={() => {
-                    // Try to go back to previous page, fallback to home
                     if (window.history.length > 1) {
                       window.history.back();
                     } else {
                       handleNavigation("/");
                     }
                   }}
-                  className="text-muted-foreground hover:text-foreground transition-colors p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg"
+                  className="text-muted-foreground hover:text-foreground transition-colors p-2 hover:bg-gray-100 rounded-lg shrink-0"
                   title="Go back"
                 >
-                  <svg
-                    className="w-4 h-4 sm:w-5 sm:h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 19l-7-7 7-7"
-                    />
-                  </svg>
+                  <ArrowLeft className="w-5 h-5" />
                 </button>
-
-                {/* Alternative navigation options - hidden on mobile */}
-                <div className="hidden sm:flex items-center space-x-1">
-                  <button
-                    onClick={() => handleNavigation("/feed")}
-                    className="text-xs px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-gray-100 rounded"
-                    title="Go to Feed"
-                  >
-                    Post
-                  </button>
-                  <span className="text-muted-foreground">•</span>
-                  <button
-                    onClick={() => handleNavigation("/")}
-                    className="text-xs px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-gray-100 rounded"
-                    title="Go Home"
-                  >
-                    Home
-                  </button>
-                </div>
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">Profile</h1>
               </div>
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">Profile</h1>
-            </div>
-            {!isViewingOtherUser && (
               <Button
                 onClick={() => handleNavigation("/create-post")}
                 size="sm"
-                className="ml-2 shrink-0"
+                className="shrink-0 bg-green-600 hover:bg-green-700 text-white font-semibold px-4"
               >
                 <span className="hidden sm:inline">New Post</span>
                 <span className="sm:hidden">Post</span>
               </Button>
-            )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="max-w-6xl mx-auto">
         {/* Professional Profile Card */}
@@ -761,53 +729,46 @@ const Profile: React.FC = () => {
           </div>
 
           {/* Profile Info Section */}
-          <div className="px-6 sm:px-8 pb-6">
+          <div className="px-4 sm:px-8 pb-6">
             {/* Profile Picture & Basic Info */}
-            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between -mt-16 sm:-mt-20 mb-6">
-              <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-6">
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between -mt-12 sm:-mt-20 mb-6 relative z-10">
+              <div className="flex flex-col sm:flex-row items-center sm:items-end gap-3 sm:gap-6">
                 {/* Profile Picture */}
                 <div className="relative group">
-                  <img
-                    src={
-                      currentProfile?.profile_picture ||
-                      ""
-                    }
-                    alt={currentProfile?.name || "User"}
-                    className="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white object-cover shadow-xl"
-                  />
-                  <div className="absolute bottom-2 right-2 w-5 h-5 bg-green-500 border-4 border-white rounded-full"></div>
+                  <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white overflow-hidden shadow-2xl bg-white">
+                    <img
+                      src={currentProfile?.profile_picture || ""}
+                      alt={currentProfile?.name || "User"}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="absolute bottom-3 right-3 w-4 h-4 sm:w-5 sm:h-5 bg-green-500 border-2 sm:border-4 border-white rounded-full shadow-sm"></div>
                 </div>
 
                 {/* Name & Title */}
-                <div className="text-center sm:text-left mb-4 sm:mb-2">
-                  <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
+                <div className="text-center sm:text-left pt-2 sm:pt-0">
+                  <h1 className="text-2xl sm:text-4xl font-extrabold text-gray-900 mb-2 tracking-tight">
                     {currentProfile?.name}
                   </h1>
-                  <div className="flex flex-col sm:flex-row items-center gap-3 text-gray-600">
+                  <div className="flex flex-wrap justify-center sm:justify-start items-center gap-x-4 gap-y-2 text-gray-500">
                     <div className="flex items-center gap-1.5">
                       {(currentProfile?.show_location ?? true) && (
                         <>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                          <span className="text-sm">{currentProfile?.location || "Location not set"}</span>
+                          <MapPin className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm font-medium">{currentProfile?.location || "Location not set"}</span>
                         </>
                       )}
                     </div>
-                    <span className="hidden sm:block text-gray-400">•</span>
                     <div className="flex items-center gap-1.5">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <span className="text-sm">Joined {new Date(currentProfile?.created_at).getFullYear()}</span>
+                      <Calendar className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm font-medium joined-date">Joined {new Date(currentProfile?.created_at).getFullYear()}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto px-4 sm:px-0">
+              <div className="flex flex-row sm:flex-row items-center justify-center gap-2 w-full sm:w-auto mt-6 sm:mt-0">
                 {isViewingOtherUser ? (
                   <>
                     <FollowButton
@@ -824,7 +785,7 @@ const Profile: React.FC = () => {
                           }
                         }
                       }}
-                      className="bg-green-600 hover:bg-green-700 text-white shadow-sm"
+                      className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 text-white shadow-sm font-semibold h-10 px-6 rounded-lg text-sm"
                     />
                     <Button
                       onClick={() => {
@@ -836,38 +797,36 @@ const Profile: React.FC = () => {
                         navigate("/messages", { state: { openWithUserId: currentProfile.user_id } });
                       }}
                       variant="outline"
-                      className="border-gray-300 hover:bg-gray-50"
+                      className="flex-1 sm:flex-none border-gray-300 hover:bg-gray-50 h-10 px-6 rounded-lg text-sm font-semibold"
                     >
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                      Message
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      <span>Message</span>
                     </Button>
                   </>
                 ) : (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
                     <Button
                       onClick={() => handleNavigation("/edit-profile")}
-                      className="bg-green-600 hover:bg-green-700 text-white shadow-sm"
+                      className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 text-white shadow-sm font-semibold h-10 px-6 rounded-lg text-sm"
                     >
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                      Edit Profile
+                      <Edit2 className="w-4 h-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Edit Profile</span>
+                      <span className="sm:hidden">Edit</span>
                     </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="icon" className="border-gray-200">
+                        <Button variant="outline" size="icon" className="border-gray-200 h-10 w-10 shrink-0">
                           <Settings className="w-5 h-5 text-gray-500" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleNavigation("/settings")}>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem onClick={() => handleNavigation("/settings")} className="font-medium">
+                          <Settings className="w-4 h-4 mr-2" />
                           Settings
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
-                          className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+                          className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer font-medium"
                           onClick={() => setShowDeleteProfileDialog(true)}
                         >
                           <Trash2 className="w-4 h-4 mr-2" />
@@ -882,28 +841,28 @@ const Profile: React.FC = () => {
 
             {/* Status Badge */}
             <div className="flex justify-center sm:justify-start mb-6">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-full">
+              <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-green-50 border border-green-100 rounded-full shadow-sm hover:bg-green-100/50 transition-colors">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-sm font-medium text-green-700">Available for MeritOne trades</span>
+                <span className="text-xs sm:text-sm font-semibold text-green-700">Available for MeritOne trades</span>
               </div>
             </div>
 
             {/* Skills Section */}
             {currentProfile?.skills_i_have && currentProfile?.skills_i_have.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Skills</h3>
-                <div className="flex flex-wrap gap-2">
-                  {currentProfile?.skills_i_have.slice(0, 8).map((skill: string, index: number) => (
+              <div className="mb-8">
+                <h3 className="text-[10px] sm:text-xs font-bold text-gray-400 mb-3 uppercase tracking-[0.2em]">Key Skills</h3>
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                  {currentProfile?.skills_i_have.slice(0, 10).map((skill: string, index: number) => (
                     <span
                       key={index}
-                      className="px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 text-sm font-medium rounded-lg transition-colors cursor-default"
+                      className="px-3 py-1.5 bg-gray-50 text-gray-700 border border-gray-100 text-xs sm:text-sm font-semibold rounded-lg hover:border-green-200 hover:bg-green-50/30 transition-all cursor-default break-words max-w-full"
                     >
                       {skill}
                     </span>
                   ))}
-                  {currentProfile?.skills_i_have.length > 8 && (
-                    <span className="px-4 py-2 bg-gray-100 text-gray-600 border border-gray-300 text-sm font-medium rounded-lg">
-                      +{currentProfile?.skills_i_have.length - 8} more
+                  {currentProfile?.skills_i_have.length > 10 && (
+                    <span className="px-3 py-1.5 bg-gray-50 text-gray-400 border border-gray-100 text-xs sm:text-sm font-medium rounded-lg">
+                      +{currentProfile?.skills_i_have.length - 10}
                     </span>
                   )}
                 </div>
@@ -911,45 +870,45 @@ const Profile: React.FC = () => {
             )}
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-4 gap-4 pt-6 border-t border-gray-200">
-              <div className="text-center p-4 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer">
-                <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 pt-6 border-t border-gray-100">
+              <div className="text-center p-3 sm:p-4 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer group">
+                <div className="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-green-600 transition-colors">
                   {currentPosts.length}
                 </div>
-                <div className="text-xs sm:text-sm text-gray-600 font-medium">Posts</div>
+                <div className="text-[10px] sm:text-xs text-gray-500 font-bold uppercase tracking-wider mt-0.5">Posts</div>
               </div>
               <div
-                className="text-center p-4 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+                className="text-center p-3 sm:p-4 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer group"
                 onClick={() => setShowFollowersModal(true)}
               >
-                <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
+                <div className="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-green-600 transition-colors">
                   {followRelationship.followerCount}
                 </div>
-                <div className="text-xs sm:text-sm text-gray-600 font-medium">Followers</div>
+                <div className="text-[10px] sm:text-xs text-gray-500 font-bold uppercase tracking-wider mt-0.5">Followers</div>
               </div>
               <div
-                className="text-center p-4 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+                className="text-center p-3 sm:p-4 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer group"
                 onClick={() => setShowFollowingModal(true)}
               >
-                <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
+                <div className="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-green-600 transition-colors">
                   {followRelationship.followingCount}
                 </div>
-                <div className="text-xs sm:text-sm text-gray-600 font-medium">Following</div>
+                <div className="text-[10px] sm:text-xs text-gray-500 font-bold uppercase tracking-wider mt-0.5">Following</div>
               </div>
-              <div className="text-center p-4 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer">
-                <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
+              <div className="text-center p-3 sm:p-4 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer group">
+                <div className="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-green-600 transition-colors">
                   {currentProfile?.skills_i_have?.length || 0}
                 </div>
-                <div className="text-xs sm:text-sm text-gray-600 font-medium">Skills</div>
+                <div className="text-[10px] sm:text-xs text-gray-500 font-bold uppercase tracking-wider mt-0.5">Skills</div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="bg-white border border-gray-200 mb-6 sm:mb-8 mx-3 sm:mx-0 rounded-lg sm:rounded-none">
-          <div className="border-b border-gray-200">
-            <nav className="flex space-x-4 sm:space-x-8 px-4 sm:px-8 overflow-x-auto scrollbar-hide">
+        <div className="bg-white border-y sm:border-x border-gray-200 mb-6 sm:mb-8 mx-0 sm:mx-0">
+          <div className="border-b border-gray-100">
+            <nav className="flex space-x-2 sm:space-x-8 px-4 sm:px-8 overflow-x-auto scrollbar-hide">
               {[
                 { id: "posts", label: "Posts", count: currentPosts.length },
                 { id: "about", label: "About" },

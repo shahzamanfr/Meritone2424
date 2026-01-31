@@ -11,7 +11,7 @@ import { useProfile } from "@/contexts/ProfileContext";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
 import { ButtonLoader } from "@/components/ui/loading-spinner";
-import { Loader2, Shield, Bell, Lock, User, Eye, Mail } from "lucide-react";
+import { Loader2, Shield, Bell, Lock, User, Eye, Mail, Brain, Key, Trash2 } from "lucide-react";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -50,6 +50,10 @@ export default function Settings() {
     confirm: ""
   });
 
+  // AI state
+  const [groqKey, setGroqKey] = useState("");
+  const [isKeyVisible, setIsKeyVisible] = useState(false);
+
   // Initialize state from profile
   useEffect(() => {
     if (profile) {
@@ -71,6 +75,12 @@ export default function Settings() {
         showEmail: profile.show_email ?? false,
         showLocation: profile.show_location ?? true
       });
+    }
+
+    // Load Groq key from localStorage
+    const savedKey = localStorage.getItem('groq_api_key');
+    if (savedKey) {
+      setGroqKey(savedKey);
     }
   }, [profile, user]);
 
@@ -166,6 +176,22 @@ export default function Settings() {
       });
     } finally {
       setUpdatingPassword(false);
+    }
+  };
+
+  const handleSaveGroqKey = () => {
+    if (groqKey.trim()) {
+      localStorage.setItem('groq_api_key', groqKey.trim());
+      toast({
+        title: "AI Key Saved",
+        description: "Your Groq API key has been saved locally for AI features.",
+      });
+    } else {
+      localStorage.removeItem('groq_api_key');
+      toast({
+        title: "AI Key Removed",
+        description: "The Groq API key has been removed.",
+      });
     }
   };
 
@@ -379,50 +405,80 @@ export default function Settings() {
             </CardContent>
           </Card>
 
-          {/* Security Settings */}
+          {/* AI Settings */}
           <Card className="border-gray-200 shadow-sm overflow-hidden">
             <CardHeader className="bg-white border-b border-gray-100 flex flex-row items-center space-x-3 py-4">
-              <div className="p-2 bg-red-50 text-red-600 rounded-lg">
-                <Lock className="w-5 h-5" />
+              <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
+                <Brain className="w-5 h-5" />
               </div>
               <div>
-                <CardTitle className="text-lg">Security & Password</CardTitle>
-                <CardDescription>Keep your account secure with a strong password</CardDescription>
+                <CardTitle className="text-lg">AI Configuration</CardTitle>
+                <CardDescription>Configure AI features for resume auditing and generation</CardDescription>
               </div>
             </CardHeader>
             <CardContent className="space-y-4 pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="new-password">New Password</Label>
-                  <Input
-                    id="new-password"
-                    type="password"
-                    value={passwords.new}
-                    onChange={(e) => setPasswords(prev => ({ ...prev, new: e.target.value }))}
-                    placeholder="Min. 6 characters"
-                    className="border-gray-200"
-                  />
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="groq-key" className="text-sm font-semibold flex items-center gap-2">
+                      Groq API Key
+                    </Label>
+                    <a
+                      href="https://console.groq.com/keys"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-emerald-600 hover:underline flex items-center gap-1"
+                    >
+                      Get your key here <Key className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <div className="relative">
+                    <Input
+                      id="groq-key"
+                      type={isKeyVisible ? "text" : "password"}
+                      value={groqKey}
+                      onChange={(e) => setGroqKey(e.target.value)}
+                      placeholder="gsk_..."
+                      className="pr-20 border-gray-200"
+                    />
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => setIsKeyVisible(!isKeyVisible)}
+                      >
+                        {isKeyVisible ? "Hide" : "Show"}
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-gray-500">
+                    Your API key is stored <strong>only in this browser</strong> and is never sent to our servers.
+                  </p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirm New Password</Label>
-                  <Input
-                    id="confirm-password"
-                    type="password"
-                    value={passwords.confirm}
-                    onChange={(e) => setPasswords(prev => ({ ...prev, confirm: e.target.value }))}
-                    placeholder="Repeat new password"
-                    className="border-gray-200"
-                  />
+
+                <div className="flex gap-3">
+                  <Button
+                    onClick={handleSaveGroqKey}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white flex-1 sm:flex-none px-6"
+                  >
+                    Save Key
+                  </Button>
+                  {groqKey && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setGroqKey("");
+                        localStorage.removeItem('groq_api_key');
+                        toast({ title: "Key removed" });
+                      }}
+                      className="border-gray-200 hover:bg-gray-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
-              <Button
-                onClick={handleUpdatePassword}
-                variant="outline"
-                disabled={updatingPassword}
-                className="w-full md:w-auto mt-2 border-red-200 text-red-600 hover:bg-red-50"
-              >
-                {updatingPassword ? <ButtonLoader size="sm" /> : "Update Password"}
-              </Button>
             </CardContent>
           </Card>
 
