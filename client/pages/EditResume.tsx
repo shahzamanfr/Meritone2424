@@ -491,7 +491,7 @@ export default function EditResumePage() {
         {/* Mobile: Show either form OR preview based on toggle */}
 
         {/* LEFT SIDE: Form Editor */}
-        <div className={`w-full lg:w-1/2 overflow-y-auto overflow-x-hidden bg-white border-b lg:border-b-0 lg:border-r border-slate-300 ${showMobilePreview ? 'hidden lg:block' : 'block'}`}>
+        <div className={`w-full lg:w-1/2 overflow-y-auto overflow-x-hidden bg-white border-b lg:border-b-0 lg:border-r border-slate-300 no-print ${showMobilePreview ? 'hidden lg:block' : 'block'}`}>
           <div className="p-4 sm:p-5 md:p-8 space-y-5 sm:space-y-6 max-w-2xl mx-auto">
 
             {/* Template & Style */}
@@ -736,9 +736,9 @@ export default function EditResumePage() {
             )}
           </div>
 
-          {/* Hidden Print Anchor - Dedicated target for the printing engine */}
-          <div className="absolute top-0 left-0 -z-50 opacity-0 pointer-events-none overflow-hidden h-0 w-0">
-            <div ref={contentRef}>
+          {/* Hidden Print Anchor - Off-screen but measurable for react-to-print */}
+          <div className="absolute top-0 left-0 -z-[9999] opacity-0 pointer-events-none overflow-hidden h-0 w-0">
+            <div ref={contentRef} className="bg-white" style={{ width: '8.5in' }}>
               <ResumePreview
                 resume={resume}
                 template={template}
@@ -826,21 +826,33 @@ export default function EditResumePage() {
             width: 100% !important;
             padding: 0 !important;
             margin: 0 !important;
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-            z-index: 9999 !important;
+            position: relative !important;
             background: white !important;
+            height: auto !important;
+            overflow: visible !important;
           }
 
-          /* Prevent page breaks inside sections */
+          /* Allow page breaks between items but avoid breaking in the middle of an item */
           section, .resume-section {
+            break-inside: auto !important;
+            page-break-inside: auto !important;
+          }
+          
+          .resume-section > div, 
+          .resume-section > ul > li, 
+          section > div > div {
             break-inside: avoid !important;
             page-break-inside: avoid !important;
           }
 
           /* Professional typography reset for print */
-          h1, h2, h3, h4 { page-break-after: avoid !important; }
+          h1, h2, h3, h4 { page-break-after: avoid !important; break-after: avoid !important; }
+          
+          /* Force page break behavior */
+          .page-break {
+            page-break-before: always !important;
+            break-before: page !important;
+          }
         }
 
         /* Hide the specific print target from screen view */

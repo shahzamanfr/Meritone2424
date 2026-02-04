@@ -30,7 +30,7 @@ const ResumePreviewComponent = forwardRef<HTMLDivElement, ResumePreviewProps>(({
     };
 
     // Print-specific class for consistent sizing
-    const printClass = "print:w-[8.5in] print:min-h-[11in] print:m-0 print:p-[0.5in] print:shadow-none";
+    const printClass = "print:w-full print:max-w-none print:m-0 print:p-[0.5in] print:shadow-none bg-white";
 
     // ATS Classic Template - MAXIMUM ATS COMPATIBILITY (95+ Score)
     if (template === 'classic') {
@@ -38,10 +38,10 @@ const ResumePreviewComponent = forwardRef<HTMLDivElement, ResumePreviewProps>(({
             <div
                 ref={ref}
                 className={`${printClass} bg-white shadow-lg`}
-                style={{ ...commonStyles, fontSize: `${0.85 * fontScale}rem`, padding: '0.5in', minHeight: '11in', maxWidth: '850px' }}
+                style={{ ...commonStyles, fontSize: `${0.85 * fontScale}rem`, padding: '0.5in', maxWidth: '850px' }}
             >
                 {/* Header - Name and Contact */}
-                <div className="mb-4">
+                < div className="mb-4" >
                     <h1 className="font-bold mb-2" style={{ fontSize: '20pt', letterSpacing: '0.3px' }}>
                         {full_name?.toUpperCase() || "YOUR NAME"}
                     </h1>
@@ -50,7 +50,7 @@ const ResumePreviewComponent = forwardRef<HTMLDivElement, ResumePreviewProps>(({
                         {email}{phone && ` | ${phone}`}{location && ` | ${location}`}
                         {links?.map((l, i) => ` | ${l.label}`).join('')}
                     </div>
-                </div>
+                </div >
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                     {/* Professional Summary */}
@@ -77,8 +77,10 @@ const ResumePreviewComponent = forwardRef<HTMLDivElement, ResumePreviewProps>(({
                                             <span style={{ fontSize: '10.5pt' }}>{exp.duration}</span>
                                         </div>
                                         <div className="italic" style={{ fontSize: '11pt', marginBottom: '4pt' }}>{exp.role}</div>
-                                        <ul style={{ marginLeft: '20pt', paddingLeft: '0', fontSize: '11pt', display: 'flex', flexDirection: 'column', gap: '3pt' }}>
-                                            {exp.bullets?.slice(0, 4).map((b, bi) => <li key={bi}>{b}</li>)}
+                                        <ul className="list-disc ml-8" style={{ fontSize: '11pt' }}>
+                                            {exp.bullets?.map((b, bi) => (
+                                                <li key={bi} className="mb-1" style={{ breakInside: 'avoid' }}>{b}</li>
+                                            ))}
                                         </ul>
                                     </div>
                                 ))}
@@ -97,8 +99,10 @@ const ResumePreviewComponent = forwardRef<HTMLDivElement, ResumePreviewProps>(({
                                     <div key={i}>
                                         <div className="font-bold" style={{ fontSize: '11pt', marginBottom: '2pt' }}>{proj.name}</div>
                                         {proj.description && <p style={{ fontSize: '10.5pt', marginBottom: '4pt', color: '#333' }}>{proj.description}</p>}
-                                        <ul style={{ marginLeft: '20pt', paddingLeft: '0', fontSize: '11pt', display: 'flex', flexDirection: 'column', gap: '3pt' }}>
-                                            {proj.bullets?.slice(0, 3).map((b, bi) => <li key={bi}>{b}</li>)}
+                                        <ul className="list-disc ml-8" style={{ fontSize: '11pt' }}>
+                                            {proj.bullets?.map((b, bi) => (
+                                                <li key={bi} className="mb-1" style={{ breakInside: 'avoid' }}>{b}</li>
+                                            ))}
                                         </ul>
                                     </div>
                                 ))}
@@ -206,7 +210,7 @@ const ResumePreviewComponent = forwardRef<HTMLDivElement, ResumePreviewProps>(({
                         </section>
                     )}
                 </div>
-            </div>
+            </div >
         );
     }
 
@@ -216,10 +220,10 @@ const ResumePreviewComponent = forwardRef<HTMLDivElement, ResumePreviewProps>(({
             <div
                 ref={ref}
                 className={`${printClass} bg-white shadow-lg text-slate-900`}
-                style={{ ...commonStyles, fontSize: `${0.9 * fontScale}rem`, minHeight: '11in', maxWidth: '850px' }}
+                style={{ ...commonStyles, fontSize: `${0.9 * fontScale}rem`, maxWidth: '850px' }}
             >
                 {/* Header with Accent */}
-                <div className="px-10 py-8 text-white relative overflow-hidden" style={{ backgroundColor: accentColor }}>
+                < div className="px-10 py-8 text-white relative overflow-hidden" style={{ backgroundColor: accentColor }}>
                     <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.1) 75%, transparent 75%, transparent)', backgroundSize: '20px 20px' }}></div>
                     <div className="relative z-10">
                         <h1 className="text-3xl font-bold tracking-tight mb-1">{full_name || "Your Name"}</h1>
@@ -233,7 +237,7 @@ const ResumePreviewComponent = forwardRef<HTMLDivElement, ResumePreviewProps>(({
                             ))}
                         </div>
                     </div>
-                </div>
+                </div >
 
                 <div className="grid grid-cols-[2fr_1fr] gap-8 p-10">
                     {/* Main Column */}
@@ -259,7 +263,9 @@ const ResumePreviewComponent = forwardRef<HTMLDivElement, ResumePreviewProps>(({
                                             </div>
                                             <div className="text-sm font-semibold mb-2" style={{ color: accentColor }}>{exp.company}</div>
                                             <ul className="list-disc ml-4 space-y-1 text-sm text-slate-600">
-                                                {exp.bullets?.map((b, bi) => <li key={bi}>{b}</li>)}
+                                                {exp.bullets?.map((b, bi) => (
+                                                    <li key={bi} style={{ breakInside: 'avoid' }}>{b}</li>
+                                                ))}
                                             </ul>
                                         </div>
                                     ))}
@@ -277,7 +283,9 @@ const ResumePreviewComponent = forwardRef<HTMLDivElement, ResumePreviewProps>(({
                                             <h4 className="font-bold text-slate-900 text-sm">{proj.name}</h4>
                                             {proj.description && <p className="text-sm text-slate-600 mb-1">{proj.description}</p>}
                                             <ul className="list-disc ml-4 space-y-0.5 text-sm text-slate-600">
-                                                {proj.bullets?.map((b, bi) => <li key={bi}>{b}</li>)}
+                                                {proj.bullets?.map((b, bi) => (
+                                                    <li key={bi} style={{ breakInside: 'avoid' }}>{b}</li>
+                                                ))}
                                             </ul>
                                         </div>
                                     ))}
@@ -373,7 +381,7 @@ const ResumePreviewComponent = forwardRef<HTMLDivElement, ResumePreviewProps>(({
                         )}
                     </div>
                 </div>
-            </div>
+            </div >
         );
     }
 
@@ -383,7 +391,7 @@ const ResumePreviewComponent = forwardRef<HTMLDivElement, ResumePreviewProps>(({
             <div
                 ref={ref}
                 className={`${printClass} bg-white shadow-lg text-slate-900`}
-                style={{ ...commonStyles, fontSize: `${0.88 * fontScale}rem`, minHeight: '11in', maxWidth: '850px' }}
+                style={{ ...commonStyles, fontSize: `${0.88 * fontScale}rem`, maxWidth: '850px' }}
             >
                 <div className="grid grid-cols-[260px_1fr]">
                     {/* Left Sidebar - Accent Color */}
@@ -494,7 +502,9 @@ const ResumePreviewComponent = forwardRef<HTMLDivElement, ResumePreviewProps>(({
                                             </div>
                                             <div className="text-sm font-semibold mb-1.5" style={{ color: accentColor }}>{exp.company}</div>
                                             <ul className="list-disc ml-4 space-y-0.5 text-sm text-slate-600">
-                                                {exp.bullets?.map((b, bi) => <li key={bi}>{b}</li>)}
+                                                {exp.bullets?.map((b, bi) => (
+                                                    <li key={bi} style={{ breakInside: 'avoid' }}>{b}</li>
+                                                ))}
                                             </ul>
                                         </div>
                                     ))}
@@ -512,7 +522,9 @@ const ResumePreviewComponent = forwardRef<HTMLDivElement, ResumePreviewProps>(({
                                             <h4 className="font-bold text-slate-900 text-sm">{proj.name}</h4>
                                             {proj.description && <p className="text-sm text-slate-600 mb-1">{proj.description}</p>}
                                             <ul className="list-disc ml-4 space-y-0.5 text-sm text-slate-600">
-                                                {proj.bullets?.map((b, bi) => <li key={bi}>{b}</li>)}
+                                                {proj.bullets?.map((b, bi) => (
+                                                    <li key={bi} style={{ breakInside: 'avoid' }}>{b}</li>
+                                                ))}
                                             </ul>
                                         </div>
                                     ))}
@@ -550,12 +562,12 @@ const ResumePreviewComponent = forwardRef<HTMLDivElement, ResumePreviewProps>(({
                         )}
                     </div>
                 </div>
-            </div>
+            </div >
         );
     }
 
     // Fallback (shouldn't reach here)
-    return <div ref={ref} className="bg-white min-h-[1123px] w-full max-w-[850px] mx-auto p-10">Select a template</div>;
+    return <div ref={ref} className="bg-white w-full max-w-[850px] mx-auto p-10">Select a template</div>;
 });
 
 ResumePreviewComponent.displayName = "ResumePreview";

@@ -57,7 +57,7 @@ export default function CreateProfile() {
     }
 
     if (!isAuthenticated) {
-      navigate("/signup");
+      navigate("/signin");
     } else if (!isEmailVerified) {
       navigate("/");
     } else if (hasProfile) {

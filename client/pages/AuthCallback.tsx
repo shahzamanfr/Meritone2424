@@ -14,7 +14,7 @@ export default function AuthCallback() {
     const handleAuthCallback = async () => {
       try {
         const { data, error } = await supabase.auth.getSession();
-        
+
         if (error) {
           setStatus('error');
           setMessage('Authentication failed. Please try again.');
@@ -23,7 +23,12 @@ export default function AuthCallback() {
 
         if (data.session) {
           setStatus('success');
-          setMessage('Email verified successfully! You can now sign in to your account.');
+          setMessage('Email verified successfully! Redirecting you to the home page...');
+
+          // Automatically redirect after a short delay to allow session to propagate
+          setTimeout(() => {
+            navigate('/');
+          }, 2000);
         } else {
           setStatus('error');
           setMessage('Invalid or expired verification link.');
@@ -64,18 +69,18 @@ export default function AuthCallback() {
               <AlertCircle className="w-8 h-8 text-red-600" />
             </div>
           )}
-          
+
           <CardTitle className="text-2xl">
             {status === 'loading' && 'Verifying Email...'}
             {status === 'success' && 'Email Verified!'}
             {status === 'error' && 'Verification Failed'}
           </CardTitle>
-          
+
           <CardDescription>
             {message}
           </CardDescription>
         </CardHeader>
-        
+
         <CardContent className="space-y-4">
           {status === 'success' && (
             <div className="space-y-2">
@@ -87,7 +92,7 @@ export default function AuthCallback() {
               </Button>
             </div>
           )}
-          
+
           {status === 'error' && (
             <div className="space-y-2">
               <Button onClick={handleGoHome} className="w-full">

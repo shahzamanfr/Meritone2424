@@ -67,14 +67,29 @@ export async function upsertMyResume(resume: Omit<Resume, "user_id">): Promise<R
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Not authenticated");
 
-  const payload = { ...resume, user_id: userId } as Partial<Resume>;
-
-  // Remove id if it exists to let the database handle it
-  delete payload.id;
+  // Ensure only valid fields are sent to the database
+  const sanitizedPayload: any = {
+    full_name: resume.full_name,
+    headline: resume.headline,
+    email: resume.email,
+    phone: resume.phone,
+    location: resume.location,
+    links: resume.links || [],
+    summary: resume.summary,
+    education: resume.education || [],
+    technical_skills: resume.technical_skills || [],
+    experience: resume.experience || [],
+    projects: resume.projects || [],
+    achievements: resume.achievements || [],
+    certifications: resume.certifications || [],
+    languages: resume.languages || [],
+    volunteer: resume.volunteer || [],
+    user_id: userId
+  };
 
   const { data, error } = await supabase
     .from("resumes")
-    .upsert(payload, {
+    .upsert(sanitizedPayload, {
       onConflict: "user_id",
       ignoreDuplicates: false
     })
@@ -82,7 +97,11 @@ export async function upsertMyResume(resume: Omit<Resume, "user_id">): Promise<R
     .single();
 
   if (error) {
-    console.error("Resume save error:", error);
+    if (error.code === '23505') {
+      console.error("Conflict saving resume:", error.message);
+    } else if (error.message.includes('column')) {
+      console.error("Database schema mismatch. Please run the migration script (update_resumes_schema.sql) in Supabase:", error.message);
+    }
     throw error;
   }
   return data as unknown as Resume;

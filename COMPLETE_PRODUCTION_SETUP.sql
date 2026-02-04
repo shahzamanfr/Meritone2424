@@ -142,6 +142,8 @@ CREATE TABLE IF NOT EXISTS public.resumes (
     projects JSONB DEFAULT '[]',
     achievements JSONB DEFAULT '[]',
     certifications JSONB DEFAULT '[]',
+    languages JSONB DEFAULT '[]',
+    volunteer JSONB DEFAULT '[]',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

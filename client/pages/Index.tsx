@@ -25,10 +25,14 @@ export default function Index() {
 
   const handleGetStartedClick = () => {
     if (!isAuthenticated) {
-      navigate("/signup");
+      navigate("/signin");
     } else if (!isEmailVerified) {
       // Show message about email verification
-      alert("Please verify your email before creating a profile.");
+      toast({
+        title: "Email Verification Required",
+        description: "Please check your inbox and verify your email to continue.",
+        variant: "destructive"
+      });
     } else if (!hasProfile) {
       navigate("/create-profile");
     } else {
@@ -220,24 +224,15 @@ export default function Index() {
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 pt-2">
                 <Button
-                  onClick={() => {
-                    if (isAuthenticated) {
-                      navigate("/feed");
-                    } else {
-                      navigate("/signup");
-                    }
-                  }}
+                  onClick={handleGetStartedClick}
                   className="bg-green-600 hover:bg-green-700 text-white px-8 py-6 text-base font-semibold rounded-md transition-all duration-300 shadow-sm active:scale-95"
                 >
                   Join the Community
                 </Button>
                 <Button
                   onClick={() => {
-                    if (isAuthenticated) {
-                      navigate("/feed");
-                    } else {
-                      navigate("/signup");
-                    }
+                    if (!isAuthenticated) navigate("/signin");
+                    else navigate("/feed");
                   }}
                   variant="outline"
                   className="bg-white/5 backdrop-blur-md border border-white/20 text-white hover:bg-white hover:text-black hover:border-white px-8 py-6 text-base font-semibold rounded-md transition-all duration-300 active:scale-95"
