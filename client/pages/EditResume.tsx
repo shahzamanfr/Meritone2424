@@ -737,7 +737,7 @@ export default function EditResumePage() {
           </div>
 
           {/* Hidden Print Anchor - Off-screen but measurable for react-to-print */}
-          <div className="absolute top-0 left-0 -z-[9999] opacity-0 pointer-events-none overflow-hidden h-0 w-0 print:static print:opacity-100 print:h-auto print:w-auto print:z-0 print:pointer-events-auto">
+          <div className="absolute resume-element top-0 left-0 -z-[9999] opacity-0 pointer-events-none overflow-hidden h-0 w-0 print:static print:opacity-100 print:h-auto print:w-auto print:z-0 print:pointer-events-auto">
             <div ref={contentRef} className="bg-white resume-print-target" style={{ width: '8.5in' }}>
               <ResumePreview
                 resume={resume}

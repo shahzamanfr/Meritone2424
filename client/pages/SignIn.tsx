@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, Mail, Lock, LogIn, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useSafeBack } from "@/hooks/useSafeBack";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -17,11 +18,12 @@ export default function SignIn() {
 
   const { signIn, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const safeBack = useSafeBack();
 
   // Redirect if already authenticated
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      navigate("/");
+      navigate("/", { replace: true });
     }
   }, [isAuthenticated, authLoading, navigate]);
 
@@ -37,7 +39,7 @@ export default function SignIn() {
         setError(result.error);
       } else if (result.success) {
         // Redirect to home page after successful sign in
-        navigate("/");
+        navigate("/", { replace: true });
       }
     } catch (err) {
       setError("An unexpected error occurred");
@@ -52,7 +54,7 @@ export default function SignIn() {
         variant="ghost"
         size="icon"
         className="absolute top-4 left-4 md:top-8 md:left-8"
-        onClick={() => navigate(-1)}
+        onClick={safeBack}
       >
         <ArrowLeft className="h-6 w-6 text-gray-600" />
       </Button>
@@ -129,7 +131,7 @@ export default function SignIn() {
                 type="button"
                 variant="link"
                 className="p-0 h-auto font-semibold"
-                onClick={() => navigate("/signup")}
+                onClick={() => navigate("/signup", { replace: true })}
               >
                 Sign Up
               </Button>

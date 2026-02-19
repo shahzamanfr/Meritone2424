@@ -57,11 +57,11 @@ export default function CreateProfile() {
     }
 
     if (!isAuthenticated) {
-      navigate("/signin");
+      navigate("/signin", { replace: true });
     } else if (!isEmailVerified) {
-      navigate("/verify-email");
+      navigate("/verify-email", { replace: true });
     } else if (hasProfile) {
-      navigate("/profile");
+      navigate("/profile", { replace: true });
     } else {
       // User is authenticated, verified, and doesn't have a profile
       setIsCheckingAuth(false);
@@ -172,7 +172,7 @@ export default function CreateProfile() {
       }
 
       // Success! Redirect to profile page
-      navigate("/profile");
+      navigate("/profile", { replace: true });
     } catch (error) {
       console.error("Profile creation error:", error);
       setError("An unexpected error occurred. Please try again.");

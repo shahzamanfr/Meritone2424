@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './AuthContext';
 
@@ -490,7 +490,7 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     loadPosts(true);
   }, [loadPosts]);
 
-  const value: PostsContextType = {
+  const value: PostsContextType = useMemo(() => ({
     posts,
     loading,
     error,
@@ -507,7 +507,7 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     refreshPosts,
     retryLoad,
     getUserPosts
-  };
+  }), [posts, loading, error, hasMore, loadMorePosts]);
 
   return (
     <PostsContext.Provider value={value}>

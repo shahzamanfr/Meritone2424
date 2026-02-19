@@ -11,12 +11,12 @@ export const FloatingMessageButton: React.FC = () => {
 
   const handleClick = () => {
     if (!isAuthenticated) {
-      navigate("/signin");
+      navigate("/signin", { replace: true });
       return;
     }
 
     if (!isProfileComplete) {
-      navigate('/edit-profile');
+      navigate('/edit-profile', { replace: true });
       return;
     }
 

@@ -76,31 +76,33 @@ const SocialFeed: React.FC = () => {
 
 
   // Filter and sort posts
-  const filteredPosts = posts
-    .filter(post => {
-      if (filterType !== 'all' && post.post_type !== filterType) return false;
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        return (
-          post.title?.toLowerCase().includes(query) ||
-          post.content?.toLowerCase().includes(query) ||
-          post.user?.name?.toLowerCase().includes(query) ||
-          post.skills_offered?.some(skill => skill.toLowerCase().includes(query)) ||
-          post.skills_needed?.some(skill => skill.toLowerCase().includes(query))
-        );
-      }
-      return true;
-    })
-    .sort((a, b) => {
-      if (sortBy === 'popular') {
-        return (b.likes_count + b.comments_count) - (a.likes_count + a.comments_count);
-      }
-      const dateA = new Date(a.created_at).getTime();
-      const dateB = new Date(b.created_at).getTime();
-      const safeDateA = isNaN(dateA) ? 0 : dateA;
-      const safeDateB = isNaN(dateB) ? 0 : dateB;
-      return safeDateB - safeDateA;
-    });
+  const filteredPosts = React.useMemo(() => {
+    return posts
+      .filter(post => {
+        if (filterType !== 'all' && post.post_type !== filterType) return false;
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase();
+          return (
+            post.title?.toLowerCase().includes(query) ||
+            post.content?.toLowerCase().includes(query) ||
+            post.user?.name?.toLowerCase().includes(query) ||
+            post.skills_offered?.some(skill => skill.toLowerCase().includes(query)) ||
+            post.skills_needed?.some(skill => skill.toLowerCase().includes(query))
+          );
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        if (sortBy === 'popular') {
+          return (b.likes_count + b.comments_count) - (a.likes_count + a.comments_count);
+        }
+        const dateA = new Date(a.created_at).getTime();
+        const dateB = new Date(b.created_at).getTime();
+        const safeDateA = isNaN(dateA) ? 0 : dateA;
+        const safeDateB = isNaN(dateB) ? 0 : dateB;
+        return safeDateB - safeDateA;
+      });
+  }, [posts, filterType, searchQuery, sortBy]);
 
   // Infinite scroll hook
   const loadMoreRef = useInfiniteScroll({

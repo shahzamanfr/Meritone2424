@@ -170,12 +170,12 @@
     display: none;
   }
 
-  /* Better touch targets for mobile */
+  /* Better touch targets and responsiveness for mobile */
   @media (max-width: 640px) {
-
     button,
     a {
       min-height: 44px;
+      touch-action: manipulation;
     }
   }
 

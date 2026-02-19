@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { messagingService } from '@/lib/unified-messaging.service';
@@ -7,8 +7,8 @@ type AuthContextType = {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string) => Promise<{ error?: string; success?: boolean }>;
-  signIn: (email: string, password: string) => Promise<{ error?: string; success?: boolean }>;
+  signUp: (email: string, password: string) => Promise<{ error?: string; success?: boolean; message?: string }>;
+  signIn: (email: string, password: string) => Promise<{ error?: string; success?: boolean; message?: string }>;
   signOut: () => Promise<void>;
   isAuthenticated: boolean;
   isEmailVerified: boolean;
@@ -23,9 +23,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string) => {
     try {
-      // Clear any existing session first
-      await supabase.auth.signOut();
-
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -39,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (data.user && !data.user.email_confirmed_at) {
-        return { success: true, error: 'Please check your email to verify your account' };
+        return { success: true, message: 'Please check your email to verify your account' };
       }
 
       return { success: true };
@@ -130,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [user?.id]);
 
-  const value = {
+  const value = useMemo(() => ({
     user,
     session,
     loading,
@@ -139,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut,
     isAuthenticated: !!user,
     isEmailVerified: !!user?.email_confirmed_at,
-  };
+  }), [user, session, loading]);
 
   return (
     <AuthContext.Provider value={value}>

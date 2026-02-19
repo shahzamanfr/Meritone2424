@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, Mail, Lock, User, CheckCircle, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useSafeBack } from "@/hooks/useSafeBack";
 
 export default function SignUp() {
   const [email, setEmail] = useState("");
@@ -21,11 +22,12 @@ export default function SignUp() {
 
   const { signUp, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const safeBack = useSafeBack();
 
   // Redirect if already authenticated
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      navigate("/");
+      navigate("/", { replace: true });
     }
   }, [isAuthenticated, authLoading, navigate]);
 
@@ -54,7 +56,12 @@ export default function SignUp() {
       if (result.error) {
         setError(result.error);
       } else if (result.success) {
-        setSuccess("Account created successfully! Please check your email to verify your account.");
+        // Dismiss mobile keyboard
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+
+        setSuccess(result.message || "Account created successfully! Please check your email to verify your account.");
         setEmailSent(true);
       }
     } catch (err) {
@@ -85,7 +92,7 @@ export default function SignUp() {
               </AlertDescription>
             </Alert>
             <Button
-              onClick={() => navigate("/signin")}
+              onClick={() => navigate("/signin", { replace: true })}
               className="w-full"
               variant="outline"
             >
@@ -103,7 +110,7 @@ export default function SignUp() {
         variant="ghost"
         size="icon"
         className="absolute top-4 left-4 md:top-8 md:left-8"
-        onClick={() => navigate(-1)}
+        onClick={safeBack}
       >
         <ArrowLeft className="h-6 w-6 text-gray-600" />
       </Button>
@@ -209,7 +216,7 @@ export default function SignUp() {
                 type="button"
                 variant="link"
                 className="p-0 h-auto font-semibold"
-                onClick={() => navigate("/signin")}
+                onClick={() => navigate("/signin", { replace: true })}
               >
                 Sign In
               </Button>

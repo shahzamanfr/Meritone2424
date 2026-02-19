@@ -90,7 +90,6 @@ const Trades: React.FC = () => {
     };
 
     loadTrades();
-    loadTrades();
 
 
     const subscription = TradesService.subscribeToTrades((updatedTrades) => {
@@ -374,7 +373,7 @@ const Trades: React.FC = () => {
               onClick={() => {
                 if (!isProfileComplete) {
                   setError('Please complete your profile first (add bio and at least one skill)');
-                  navigate('/edit-profile');
+                  navigate('/edit-profile', { replace: true });
                   return;
                 }
                 setEditingTradeId(null);
@@ -582,7 +581,7 @@ const Trades: React.FC = () => {
                               e.stopPropagation();
                               if (!isProfileComplete) {
                                 setError('Please complete your profile first (add bio and at least one skill)');
-                                navigate('/edit-profile');
+                                navigate('/edit-profile', { replace: true });
                                 return;
                               }
                               navigate('/messages', { state: { openWithUserId: trade.user_id } });
@@ -711,7 +710,7 @@ const Trades: React.FC = () => {
                                 </p>
                                 <Button
                                   size="sm"
-                                  onClick={() => navigate('/edit-profile')}
+                                  onClick={() => navigate('/edit-profile', { replace: true })}
                                   className="bg-amber-600 hover:bg-amber-700 text-white h-7 text-xs"
                                 >
                                   Complete Profile

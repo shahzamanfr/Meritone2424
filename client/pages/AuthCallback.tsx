@@ -27,7 +27,7 @@ export default function AuthCallback() {
 
           // Automatically redirect after a short delay to allow session to propagate
           setTimeout(() => {
-            navigate('/');
+            navigate('/', { replace: true });
           }, 2000);
         } else {
           setStatus('error');
@@ -43,7 +43,7 @@ export default function AuthCallback() {
   }, []);
 
   const handleSignIn = () => {
-    navigate('/signin');
+    navigate('/signin', { replace: true });
   };
 
   const handleGoHome = () => {

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './AuthContext';
 import type { Database } from '@/lib/supabase';
@@ -51,7 +51,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   const markAsRead = (notificationId: string) => {
-    setNotifications(prev => 
+    setNotifications(prev =>
       prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
     );
   };
@@ -111,7 +111,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         },
         (payload) => {
           const newFollow = payload.new as any;
-          
+
           // Only show notification if someone followed the current user
           if (newFollow.following_id === user.id) {
             supabase
@@ -141,14 +141,14 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
   }, [user]);
 
-  const value: NotificationContextType = {
+  const value: NotificationContextType = useMemo(() => ({
     notifications,
     unreadCount,
     markAsRead,
     markAllAsRead,
     clearNotifications,
     addNotification,
-  };
+  }), [notifications, unreadCount]);
 
   return (
     <NotificationContext.Provider value={value}>

@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import Header from '@/components/Header';
 import { Button } from "@/components/ui/button";
 import { useNavigate, useParams } from "react-router-dom";
+import { useSafeBack } from "@/hooks/useSafeBack";
 import { MessageButton } from "@/components/messaging/MessageButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/contexts/ProfileContext";
@@ -58,6 +59,7 @@ import { useToast } from "@/components/ui/use-toast";
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
+  const safeBack = useSafeBack();
   const { id } = useParams(); // Get user ID from URL params
   const { isAuthenticated, isEmailVerified, user: authUser, loading: authLoading } = useAuth();
   const { profile, loading, hasProfile, deleteProfile } = useProfile();
@@ -516,7 +518,7 @@ const Profile: React.FC = () => {
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900 mb-4">User Not Found</h1>
             <p className="text-gray-600 mb-4">The user profile you're looking for doesn't exist or has been removed.</p>
-            <Button onClick={() => navigate(-1)} variant="outline">
+            <Button onClick={safeBack} variant="outline">
               Go Back
             </Button>
           </div>
@@ -547,7 +549,7 @@ const Profile: React.FC = () => {
             <p className="text-gray-600 mb-8">
               You must be following this user to view their profile, or they have chosen to keep their profile private.
             </p>
-            <Button onClick={() => navigate(-1)} className="w-full bg-green-600 hover:bg-green-700">
+            <Button onClick={safeBack} className="w-full bg-green-600 hover:bg-green-700">
               Go Back
             </Button>
           </div>

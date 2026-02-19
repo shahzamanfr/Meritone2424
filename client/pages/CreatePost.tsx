@@ -2,10 +2,11 @@ import React, { useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useSafeBack } from '@/hooks/useSafeBack';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePosts, Post } from '@/contexts/PostsContext';
 import { useProfile } from '@/contexts/ProfileContext';
-import { X, Image, Video, File, Plus, Trash2, Upload, Briefcase, Search } from 'lucide-react';
+import { X, Image, Video, File, Plus, Trash2, Upload, Briefcase, Search, ArrowLeft } from 'lucide-react';
 import { BackButton } from '@/components/BackButton';
 import { EmailVerificationNotice } from '@/components/EmailVerificationNotice';
 
@@ -31,6 +32,7 @@ interface PostData {
 
 const CreatePost: React.FC = () => {
   const navigate = useNavigate();
+  const safeBack = useSafeBack();
   const { isAuthenticated, isEmailVerified, loading } = useAuth();
   const { profile, hasProfile } = useProfile();
   const { createPost, updatePost } = usePosts();
@@ -132,7 +134,9 @@ const CreatePost: React.FC = () => {
           <div className="max-w-4xl mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <BackButton />
+                <Button variant="ghost" size="sm" onClick={safeBack} className="text-gray-500 hover:text-gray-900 transition-colors">
+                  <ArrowLeft className="w-5 h-5" />
+                </Button>
                 <h1 className="text-xl font-bold text-gray-900">{postToEdit ? 'Edit Post' : 'Create Post'}</h1>
               </div>
             </div>
@@ -370,7 +374,9 @@ const CreatePost: React.FC = () => {
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <BackButton />
+              <Button variant="ghost" size="sm" onClick={safeBack} className="text-gray-500 hover:text-gray-900 transition-colors">
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
               <h1 className="text-xl font-bold text-gray-900">{postToEdit ? 'Edit Post' : 'Create Post'}</h1>
             </div>
 
@@ -789,7 +795,7 @@ const CreatePost: React.FC = () => {
               {/* Navigation */}
               <div className="flex justify-between">
                 <Button
-                  onClick={() => postToEdit ? navigate(-1) : setStep(1)}
+                  onClick={safeBack}
                   variant="outline"
                   className="px-6 py-3 transition-colors"
                 >

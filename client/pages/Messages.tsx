@@ -143,7 +143,7 @@ const Messages: React.FC = () => {
 
   useEffect(() => {
     if (!authLoading && user && !isProfileComplete) {
-      navigate('/edit-profile');
+      navigate('/edit-profile', { replace: true });
     }
   }, [authLoading, user, isProfileComplete, navigate]);
 

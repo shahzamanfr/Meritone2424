@@ -7,6 +7,7 @@ import { Search, Menu, X, Rocket, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/contexts/ProfileContext";
 import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useSafeBack } from "@/hooks/useSafeBack";
 import { UserSearchDropdown } from "./UserSearchDropdown";
 import { UserSearchResult } from "@/lib/user-search.service";
 
@@ -17,6 +18,7 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const safeBack = useSafeBack();
 
   // Check if we are on the home page
   const isHomePage = location.pathname === "/";
@@ -70,7 +72,7 @@ export default function Header() {
                   variant="ghost"
                   size="icon"
                   className="mr-1 -ml-2 text-slate-500 hover:text-slate-900"
-                  onClick={() => navigate(-1)}
+                  onClick={safeBack}
                   aria-label="Go back"
                 >
                   <ArrowLeft className="h-5 w-5" />
@@ -325,26 +327,28 @@ export default function Header() {
               {/* Mobile Auth */}
               <div className="border-t border-gray-200 pt-4">
                 {isAuthenticated ? (
-                  profile ? (
-                    <div className="space-y-4">
-                      <div className="flex items-center space-x-3 p-2">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage
-                            src={profile.profile_picture || ""}
-                            alt={profile.name || "User"}
-                          />
-                          <AvatarFallback>
-                            {profile.name ? profile.name.charAt(0).toUpperCase() : "U"}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">{profile.name || "User"}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {profile.email || "user@example.com"}
-                          </p>
-                        </div>
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-3 p-2">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage
+                          src={profile?.profile_picture || ""}
+                          alt={profile?.name || "User"}
+                        />
+                        <AvatarFallback className={!profile ? "bg-green-100 text-green-700" : ""}>
+                          {profile?.name
+                            ? profile.name.charAt(0).toUpperCase()
+                            : (user?.email?.charAt(0).toUpperCase() || "U")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium">{profile?.name || "User"}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {profile?.email || user?.email || "user@example.com"}
+                        </p>
                       </div>
-                      <div className="space-y-2">
+                    </div>
+                    <div className="space-y-2">
+                      {profile ? (
                         <Button
                           variant="ghost"
                           className="w-full justify-start"
@@ -355,39 +359,39 @@ export default function Header() {
                         >
                           Profile
                         </Button>
+                      ) : (
                         <Button
-                          variant="ghost"
-                          className="w-full justify-start"
+                          className="w-full bg-green-600 hover:bg-green-700 text-white justify-center"
                           onClick={() => {
-                            navigate("/settings");
+                            navigate("/create-profile");
                             setIsMobileMenuOpen(false);
                           }}
                         >
-                          Settings
+                          Create Profile
                         </Button>
-                        <Button
-                          variant="ghost"
-                          className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => {
-                            handleLogout();
-                            setIsMobileMenuOpen(false);
-                          }}
-                        >
-                          Log out
-                        </Button>
-                      </div>
+                      )}
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          navigate("/settings");
+                          setIsMobileMenuOpen(false);
+                        }}
+                      >
+                        Settings
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => {
+                          handleLogout();
+                          setIsMobileMenuOpen(false);
+                        }}
+                      >
+                        Log out
+                      </Button>
                     </div>
-                  ) : (
-                    <Button
-                      onClick={() => {
-                        navigate("/create-profile");
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="w-full bg-primary hover:bg-primary/90 text-white"
-                    >
-                      Create Profile
-                    </Button>
-                  )
+                  </div>
                 ) : (
                   <div className="flex flex-col space-y-2">
                     <Button

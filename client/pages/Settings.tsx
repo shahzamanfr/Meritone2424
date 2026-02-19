@@ -9,6 +9,7 @@ import { BackButton } from "@/components/BackButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/contexts/ProfileContext";
 import { useToast } from "@/components/ui/use-toast";
+import { useSafeBack } from "@/hooks/useSafeBack";
 import { supabase } from "@/lib/supabase";
 import { ButtonLoader } from "@/components/ui/loading-spinner";
 import { Loader2, Shield, Bell, Lock, User, Eye, Mail, Brain, Key, Trash2 } from "lucide-react";
@@ -17,6 +18,7 @@ export default function Settings() {
   const { user } = useAuth();
   const { profile, updateProfile, loading: profileLoading } = useProfile();
   const { toast } = useToast();
+  const safeBack = useSafeBack();
 
   const [saving, setSaving] = useState(false);
   const [updatingPassword, setUpdatingPassword] = useState(false);
@@ -486,7 +488,7 @@ export default function Settings() {
           <div className="flex items-center justify-between pt-6 border-t border-gray-200">
             <p className="text-sm text-gray-500 italic">Last profile update: {profile?.updated_at ? new Date(profile.updated_at).toLocaleDateString() : 'Never'}</p>
             <div className="flex gap-4">
-              <Button variant="ghost" onClick={() => window.history.back()}>
+              <Button variant="ghost" onClick={safeBack}>
                 Cancel
               </Button>
               <Button
