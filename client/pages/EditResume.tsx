@@ -200,15 +200,34 @@ export default function EditResumePage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      if (!resume.full_name) throw new Error("Full Name is required");
+      if (!resume.full_name) {
+        toast({
+          title: "Name Required",
+          description: "Full Name is required to save your resume.",
+          variant: "destructive",
+        });
+        setSaving(false);
+        return;
+      }
+
       await upsertMyResume(resume as any);
-      alert("✅ Resume saved successfully! Your data is secure and private.");
+
+      toast({
+        title: "Resume Saved",
+        description: "Your data is secure and has been saved successfully.",
+      });
+
       setSaving(false);
     } catch (err: any) {
       console.error("Resume save error:", err);
       setSaving(false);
       const errorMessage = err?.message || err?.error_description || "Unknown error";
-      alert(`❌ Failed to save resume: ${errorMessage}\n\nPlease check the console for details.`);
+
+      toast({
+        title: "Save Failed",
+        description: `Error: ${errorMessage}. Please check your connection and try again.`,
+        variant: "destructive",
+      });
     }
   };
 
@@ -252,10 +271,19 @@ export default function EditResumePage() {
         JSON.stringify(resume),
         prompt
       );
-      alert(`AI Response:\n\n${response}\n\nYou can now apply these suggestions to your resume.`);
-    } catch (error) {
+      toast({
+        title: "AI Analysis Complete",
+        description: "Review the suggestions below to improve your resume content.",
+      });
+      // Optionally show the response in a more structured way here if needed
+      console.log("AI Suggestions:", response);
+    } catch (error: any) {
       console.error('AI prompt error:', error);
-      alert('Failed to get AI response. Please try again.');
+      toast({
+        title: "AI Request Failed",
+        description: error.message || "Failed to get AI response. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -845,6 +873,14 @@ export default function EditResumePage() {
         onSubmit={handleAIPrompt}
       />
 
+
+      {/* Resume Scanner Modal - RESTORED */}
+      <ResumeScannerModal
+        isOpen={showScanner}
+        onClose={() => setShowScanner(false)}
+        scanResult={scanResult}
+        onRescan={handleScanResume}
+      />
 
       {/* Hidden Print Anchor - Moved to root to avoid parent .no-print hiding it */}
       <div className="absolute resume-element top-0 left-0 -z-[9999] opacity-0 pointer-events-none overflow-hidden h-0 w-0 print:static print:relative print:opacity-100 print:h-auto print:w-full print:z-0 print:pointer-events-auto print:overflow-visible print:block">
