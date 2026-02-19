@@ -738,19 +738,7 @@ export default function EditResumePage() {
             )}
           </div>
 
-          {/* Hidden Print Anchor - Off-screen but measurable for react-to-print */}
-          <div className="absolute resume-element top-0 left-0 -z-[9999] opacity-0 pointer-events-none overflow-hidden h-0 w-0 print:static print:relative print:opacity-100 print:h-auto print:w-full print:z-0 print:pointer-events-auto print:overflow-visible print:block">
-            <div ref={contentRef} className="bg-white resume-print-target">
-              <ResumePreview
-                resume={resume}
-                template={template}
-                accentColor={accentColor}
-                fontScale={fontScale}
-              />
-            </div>
-          </div>
         </div>
-
       </div>
 
       {/* Job Tailoring Dialog */}
@@ -811,8 +799,8 @@ export default function EditResumePage() {
           .h-screen { height: auto !important; }
 
           /* Ensure ONLY the dedicated resume container is visible and occupies sensible width */
-          .resume-print-target, 
-          .resume-element {
+          .resume-element,
+          .resume-print-target {
             display: block !important;
             visibility: visible !important;
             opacity: 1 !important;
@@ -823,6 +811,8 @@ export default function EditResumePage() {
             box-shadow: none !important;
             height: auto !important;
             overflow: visible !important;
+            position: relative !important;
+            transform: none !important;
           }
 
           /* Force page break behavior */
@@ -856,13 +846,17 @@ export default function EditResumePage() {
       />
 
 
-      {/* Resume Scanner Modal */}
-      <ResumeScannerModal
-        isOpen={showScanner}
-        onClose={() => setShowScanner(false)}
-        scanResult={scanResult}
-        onRescan={handleScanResume}
-      />
+      {/* Hidden Print Anchor - Moved to root to avoid parent .no-print hiding it */}
+      <div className="absolute resume-element top-0 left-0 -z-[9999] opacity-0 pointer-events-none overflow-hidden h-0 w-0 print:static print:relative print:opacity-100 print:h-auto print:w-full print:z-0 print:pointer-events-auto print:overflow-visible print:block">
+        <div ref={contentRef} className="bg-white resume-print-target">
+          <ResumePreview
+            resume={resume}
+            template={template}
+            accentColor={accentColor}
+            fontScale={fontScale}
+          />
+        </div>
+      </div>
 
     </div >
   );
