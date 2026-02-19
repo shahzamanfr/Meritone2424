@@ -705,7 +705,7 @@ export default function EditResumePage() {
         </div>
 
         {/* RIGHT SIDE: Live Resume Preview */}
-        <div className={`w-full lg:w-1/2 bg-slate-50 overflow-y-auto overflow-x-hidden p-2 md:p-4 preview-column ${!showMobilePreview ? 'hidden lg:block' : 'block'}`}>
+        <div className={`w-full lg:w-1/2 bg-slate-50 overflow-y-auto overflow-x-hidden p-2 md:p-4 preview-column no-print ${!showMobilePreview ? 'hidden lg:block' : 'block'}`}>
           <div className="w-full max-w-[850px] mx-auto shadow-lg relative">
             {/* 
                 This is the actual preview visible to the user.
@@ -810,10 +810,9 @@ export default function EditResumePage() {
           .min-h-screen { min-height: 0 !important; }
           .h-screen { height: auto !important; }
 
-          /* Ensure the resume container is visible and occupies sensible width */
+          /* Ensure ONLY the dedicated resume container is visible and occupies sensible width */
           .resume-print-target, 
-          .resume-element,
-          .preview-column {
+          .resume-element {
             display: block !important;
             visibility: visible !important;
             opacity: 1 !important;
