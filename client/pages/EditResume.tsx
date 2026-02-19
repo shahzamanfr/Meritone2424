@@ -703,8 +703,8 @@ export default function EditResumePage() {
         </div>
 
         {/* RIGHT SIDE: Live Resume Preview */}
-        <div className={`w-full lg:w-1/2 bg-slate-50 overflow-y-auto overflow-x-hidden p-2 md:p-4 preview-column ${!showMobilePreview ? 'hidden lg:block' : 'block'}`}>
-          <div className="w-full max-w-[850px] mx-auto shadow-lg relative resume-print-target">
+        <div className={`w-full lg:w-1/2 bg-slate-50 overflow-y-auto overflow-x-hidden p-2 md:p-4 preview-column no-print ${!showMobilePreview ? 'hidden lg:block' : 'block'}`}>
+          <div className="w-full max-w-[850px] mx-auto shadow-lg relative">
             {/* 
                 This is the actual preview visible to the user.
                 We keep the 'ref' on THIS component so react-to-print can see it.
@@ -737,8 +737,8 @@ export default function EditResumePage() {
           </div>
 
           {/* Hidden Print Anchor - Off-screen but measurable for react-to-print */}
-          <div className="absolute top-0 left-0 -z-[9999] opacity-0 pointer-events-none overflow-hidden h-0 w-0">
-            <div ref={contentRef} className="bg-white" style={{ width: '8.5in' }}>
+          <div className="absolute top-0 left-0 -z-[9999] opacity-0 pointer-events-none overflow-hidden h-0 w-0 print:static print:opacity-100 print:h-auto print:w-auto print:z-0 print:pointer-events-auto">
+            <div ref={contentRef} className="bg-white resume-print-target" style={{ width: '8.5in' }}>
               <ResumePreview
                 resume={resume}
                 template={template}
@@ -852,6 +852,16 @@ export default function EditResumePage() {
           .page-break {
             page-break-before: always !important;
             break-before: page !important;
+          }
+
+          /* Consolidated print target styles */
+          .resume-print-target {
+            display: block !important;
+            width: 8.5in !important;
+            margin: 0 auto !important;
+            padding: 0 !important;
+            background: white !important;
+            box-shadow: none !important;
           }
         }
 

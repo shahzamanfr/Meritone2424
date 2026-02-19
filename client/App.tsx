@@ -21,6 +21,7 @@ import CreatePost from "./pages/CreatePost";
 import Profile from "./pages/Profile";
 import EditProfile from "./pages/EditProfile";
 import Messages from "./pages/Messages";
+import VerifyEmail from "./pages/VerifyEmail";
 
 import Settings from "./pages/Settings";
 import SignUp from "./pages/SignUp";
@@ -47,6 +48,7 @@ const App = () => (
                   <Route path="/" element={<Index />} />
                   <Route path="/signup" element={<SignUp />} />
                   <Route path="/signin" element={<SignIn />} />
+                  <Route path="/verify-email" element={<VerifyEmail />} />
                   <Route path="/auth/callback" element={<AuthCallback />} />
                   <Route path="/trades" element={<Trades />} />
                   {/* About removed from header; route kept if directly visited */}

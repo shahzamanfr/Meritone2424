@@ -58,7 +58,7 @@ const EditProfile: React.FC = () => {
     }
 
     if (!isEmailVerified) {
-      navigate("/");
+      navigate("/verify-email");
       return;
     }
 

@@ -27,12 +27,7 @@ export default function Index() {
     if (!isAuthenticated) {
       navigate("/signin");
     } else if (!isEmailVerified) {
-      // Show message about email verification
-      toast({
-        title: "Email Verification Required",
-        description: "Please check your inbox and verify your email to continue.",
-        variant: "destructive"
-      });
+      navigate("/verify-email");
     } else if (!hasProfile) {
       navigate("/create-profile");
     } else {

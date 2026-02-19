@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import Header from '@/components/Header';
 import { Button } from "@/components/ui/button";
 import { useNavigate, useParams } from "react-router-dom";
 import { MessageButton } from "@/components/messaging/MessageButton";
@@ -496,7 +497,7 @@ const Profile: React.FC = () => {
 
     if (!isEmailVerified) {
       hasRedirected.current = true;
-      navigate("/");
+      navigate("/verify-email");
       return null;
     }
 
@@ -787,21 +788,13 @@ const Profile: React.FC = () => {
                       }}
                       className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 text-white shadow-sm font-semibold h-10 px-6 rounded-lg text-sm"
                     />
-                    <Button
-                      onClick={() => {
-                        if (!authUser) {
-                          navigate("/signin");
-                          return;
-                        }
-                        if (!currentProfile?.user_id || currentProfile.user_id === authUser.id) return;
-                        navigate("/messages", { state: { openWithUserId: currentProfile.user_id } });
-                      }}
-                      variant="outline"
-                      className="flex-1 sm:flex-none border-gray-300 hover:bg-gray-50 h-10 px-6 rounded-lg text-sm font-semibold"
-                    >
-                      <MessageCircle className="w-4 h-4 mr-2" />
-                      <span>Message</span>
-                    </Button>
+                    <div className="flex-1 sm:flex-none">
+                      <MessageButton
+                        userId={targetUserId || ""}
+                        userName={currentProfile?.name}
+                        className="w-full h-10 px-6 rounded-lg text-sm font-semibold"
+                      />
+                    </div>
                   </>
                 ) : (
                   <div className="flex items-center gap-2 w-full sm:w-auto">

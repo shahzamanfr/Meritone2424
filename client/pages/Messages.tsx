@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProfile } from "@/contexts/ProfileContext";
 import { ChatWindow } from "@/components/messaging/ChatWindow";
 import { InputBox } from "@/components/messaging/InputBox";
 import { ArrowLeft } from "lucide-react";
@@ -137,6 +138,14 @@ const Messages: React.FC = () => {
       messagingService.cleanup();
     };
   }, [user?.id, location?.state?.openWithUserId]);
+
+  const { isProfileComplete } = useProfile();
+
+  useEffect(() => {
+    if (!authLoading && user && !isProfileComplete) {
+      navigate('/edit-profile');
+    }
+  }, [authLoading, user, isProfileComplete, navigate]);
 
   // Load messages when conversation is selected
   useEffect(() => {

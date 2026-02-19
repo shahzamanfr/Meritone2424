@@ -580,6 +580,11 @@ const Trades: React.FC = () => {
                             className="h-7 text-xs px-3 rounded-full flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all font-medium"
                             onClick={(e) => {
                               e.stopPropagation();
+                              if (!isProfileComplete) {
+                                setError('Please complete your profile first (add bio and at least one skill)');
+                                navigate('/edit-profile');
+                                return;
+                              }
                               navigate('/messages', { state: { openWithUserId: trade.user_id } });
                             }}
                           >

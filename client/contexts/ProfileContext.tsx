@@ -18,6 +18,7 @@ type ProfileContextType = {
   deleteProfile: () => Promise<{ error?: string; success?: boolean }>;
   hasProfile: boolean;
   isProfileComplete: boolean;
+  refreshProfile: () => Promise<void>;
 };
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
@@ -177,7 +178,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const loadProfile = async () => {
+    const loadProfile = async (force = false) => {
       if (!isAuthenticated || !user) {
         setProfile(null);
         setLoading(false);
@@ -187,12 +188,16 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       // CRITICAL: Set loading to true when starting to fetch
       setLoading(true);
 
-      // Check cache first
-      const cached = profileCache.get(user.id);
-      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-        setProfile(cached.data);
-        setLoading(false);
-        return;
+      // Check cache first (unless forced)
+      if (!force) {
+        const cached = profileCache.get(user.id);
+        if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+          setProfile(cached.data);
+          setLoading(false);
+          return;
+        }
+      } else {
+        profileCache.delete(user.id);
       }
 
       try {
@@ -223,6 +228,33 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     loadProfile();
   }, [user, isAuthenticated, authLoading]);
 
+  const refreshProfile = async () => {
+    // Explicitly call loadProfile with force = true
+    const forceLoad = async () => {
+      if (!user) return;
+      profileCache.delete(user.id);
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (!error || error.code === 'PGRST116') {
+          const profileData = data || null;
+          setProfile(profileData);
+          if (profileData) {
+            profileCache.set(user.id, { data: profileData, timestamp: Date.now() });
+          }
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    await forceLoad();
+  };
+
   // Check if profile is complete (name + bio + at least one skill)
   const isProfileComplete = useMemo(() => {
     if (!profile) return false;
@@ -246,6 +278,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     deleteProfile,
     hasProfile: !!profile,
     isProfileComplete,
+    refreshProfile,
   }), [profile, loading, isProfileComplete]);
 
   return (
