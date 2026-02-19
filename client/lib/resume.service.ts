@@ -63,8 +63,8 @@ export async function fetchMyResume(): Promise<Resume | null> {
   }
 }
 
-export async function upsertMyResume(resume: Omit<Resume, "user_id">): Promise<Resume> {
-  const userId = await getCurrentUserId();
+export async function upsertMyResume(resume: Omit<Resume, "user_id">, explicitUserId?: string): Promise<Resume> {
+  const userId = explicitUserId || await getCurrentUserId();
   if (!userId) throw new Error("Not authenticated");
 
   // Ensure only valid fields are sent to the database

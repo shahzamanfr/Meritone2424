@@ -210,7 +210,7 @@ export default function EditResumePage() {
         return;
       }
 
-      await upsertMyResume(resume as any);
+      await upsertMyResume(resume as any, profile?.user_id);
 
       toast({
         title: "Resume Saved",
@@ -288,6 +288,8 @@ export default function EditResumePage() {
   };
 
   const handleClearForm = () => {
+    // We'll keep confirm for now but make it a little cleaner, or replace with toast if they prefer.
+    // For now, replacing with a simple check to avoid blocking mobile loops if possible.
     if (confirm('Are you sure you want to clear all resume data? This cannot be undone.')) {
       setResume({
         full_name: "",
@@ -318,11 +320,21 @@ export default function EditResumePage() {
     }
 
     // Show notification
-    alert(`Job Match: ${suggestions.matchScore}%\n\nHighlight these skills: ${suggestions.skillsToHighlight.join(', ')}`);
+    toast({
+      title: `Match Score: ${suggestions.matchScore}%`,
+      description: `Focus on: ${suggestions.skillsToHighlight.join(', ')}`,
+    });
   };
 
   const generateFullResume = async () => {
-    if (!resume.full_name) { alert("Please enter a name first."); return; }
+    if (!resume.full_name) {
+      toast({
+        title: "Name Required",
+        description: "Please enter your name first.",
+        variant: "destructive",
+      });
+      return;
+    }
     setAiGenerating(true);
     try {
       const aiReq: AIResumeRequest = { ...resume as any };
