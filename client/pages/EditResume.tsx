@@ -431,8 +431,10 @@ export default function EditResumePage() {
                   handlePrintMobile();
                 } else {
                   try {
+                    // Try react-to-print first
                     handlePrint();
                   } catch (e) {
+                    console.error("Standard print failed, trying legacy:", e);
                     handlePrintLegacy();
                   }
                 }
@@ -703,7 +705,7 @@ export default function EditResumePage() {
         </div>
 
         {/* RIGHT SIDE: Live Resume Preview */}
-        <div className={`w-full lg:w-1/2 bg-slate-50 overflow-y-auto overflow-x-hidden p-2 md:p-4 preview-column no-print ${!showMobilePreview ? 'hidden lg:block' : 'block'}`}>
+        <div className={`w-full lg:w-1/2 bg-slate-50 overflow-y-auto overflow-x-hidden p-2 md:p-4 preview-column ${!showMobilePreview ? 'hidden lg:block' : 'block'}`}>
           <div className="w-full max-w-[850px] mx-auto shadow-lg relative">
             {/* 
                 This is the actual preview visible to the user.
@@ -737,8 +739,8 @@ export default function EditResumePage() {
           </div>
 
           {/* Hidden Print Anchor - Off-screen but measurable for react-to-print */}
-          <div className="absolute resume-element top-0 left-0 -z-[9999] opacity-0 pointer-events-none overflow-hidden h-0 w-0 print:static print:opacity-100 print:h-auto print:w-auto print:z-0 print:pointer-events-auto">
-            <div ref={contentRef} className="bg-white resume-print-target" style={{ width: '8.5in' }}>
+          <div className="absolute resume-element top-0 left-0 -z-[9999] opacity-0 pointer-events-none overflow-hidden h-0 w-0 print:static print:relative print:opacity-100 print:h-auto print:w-full print:z-0 print:pointer-events-auto print:overflow-visible print:block">
+            <div ref={contentRef} className="bg-white resume-print-target">
               <ResumePreview
                 resume={resume}
                 template={template}
@@ -808,67 +810,33 @@ export default function EditResumePage() {
           .min-h-screen { min-height: 0 !important; }
           .h-screen { height: auto !important; }
 
-          /* Ensure the resume container is visible and occupies full width */
-          .resume-print-target {
+          /* Ensure the resume container is visible and occupies sensible width */
+          .resume-print-target, 
+          .resume-element,
+          .preview-column {
             display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
             width: 100% !important;
             max-width: none !important;
             margin: 0 !important;
-            padding: 0.5in !important;
-            box-shadow: none !important;
-            position: static !important;
-            background: white !important;
-          }
-
-          /* Show the preview column even if it was hidden on mobile */
-          .preview-column {
-            display: block !important;
-            width: 100% !important;
             padding: 0 !important;
-            margin: 0 !important;
-            position: relative !important;
-            background: white !important;
+            box-shadow: none !important;
             height: auto !important;
             overflow: visible !important;
           }
 
-          /* Allow page breaks between items but avoid breaking in the middle of an item */
-          section, .resume-section {
-            break-inside: auto !important;
-            page-break-inside: auto !important;
-          }
-          
-          .resume-section > div, 
-          .resume-section > ul > li, 
-          section > div > div {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-          }
-
-          /* Professional typography reset for print */
-          h1, h2, h3, h4 { page-break-after: avoid !important; break-after: avoid !important; }
-          
           /* Force page break behavior */
           .page-break {
             page-break-before: always !important;
             break-before: page !important;
           }
-
-          /* Consolidated print target styles */
-          .resume-print-target {
-            display: block !important;
-            width: 8.5in !important;
-            margin: 0 auto !important;
-            padding: 0 !important;
-            background: white !important;
-            box-shadow: none !important;
-          }
         }
 
         /* Hide the specific print target from screen view */
         @media screen {
-          .resume-print-target-hidden {
-             display: none;
+          .resume-element {
+             display: none !important;
           }
         }
       `}</style>
