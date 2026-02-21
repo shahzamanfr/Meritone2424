@@ -134,8 +134,22 @@ export default function CreateProfile() {
 
     try {
       // Validate required fields
-      if (!profileData.name) {
+      if (!profileData.name.trim()) {
         setError("Please fill in your name");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!profileData.bio.trim()) {
+        setError("Please add a short bio to complete your profile");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const hasSkills = profileData.skillsIHave.length > 0 || profileData.skillsIWant.length > 0;
+      if (!hasSkills) {
+        setError("Please add at least one skill (either one you have or one you want to learn)");
+        setIsSubmitting(false);
         return;
       }
 

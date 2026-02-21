@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Trash2, Sparkles } from "lucide-react";
 import { ResumeExperience, ResumeEducation, ResumeSkillSection, ResumeLanguage, ResumeVolunteer, ResumeProject } from "@/lib/resume.service";
 import { generateBulletPoints } from "@/lib/ai-resume.service";
+import { useToast } from "@/hooks/use-toast";
 import React, { useState } from "react";
 
 // --- Experience Section ---
@@ -16,6 +17,7 @@ interface ExperienceSectionProps {
 }
 
 export const ExperienceSection: React.FC<ExperienceSectionProps> = ({ items, onChange, onAiImprove }) => {
+    const { toast } = useToast();
     const [generatingBullets, setGeneratingBullets] = useState<number | null>(null);
 
     const addItem = () => onChange([...items, { company: '', role: '', duration: '', bullets: [''] }]);
@@ -47,7 +49,11 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({ items, onC
     const handleGenerateBullets = async (i: number) => {
         const item = items[i];
         if (!item.role || !item.company) {
-            alert('Please fill in the role and company first');
+            toast({
+                title: "Incomplete Details",
+                description: "Please fill in the role and company first",
+                variant: "destructive",
+            });
             return;
         }
 
@@ -59,7 +65,11 @@ export const ExperienceSection: React.FC<ExperienceSectionProps> = ({ items, onC
             onChange(updated);
         } catch (error) {
             console.error('Error generating bullets:', error);
-            alert('Failed to generate bullet points. Please try again.');
+            toast({
+                title: "AI Failed",
+                description: "Failed to generate bullet points. Please try again.",
+                variant: "destructive",
+            });
         } finally {
             setGeneratingBullets(null);
         }

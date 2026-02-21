@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
 import { X, UserPlus, UserCheck, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -25,6 +26,7 @@ const FollowersModal: React.FC<FollowersModalProps> = ({
   onFollowChange
 }) => {
   const { user: currentUser } = useAuth();
+  const { toast } = useToast();
   const [followers, setFollowers] = useState<FollowUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -44,7 +46,7 @@ const FollowersModal: React.FC<FollowersModalProps> = ({
     try {
       const currentOffset = reset ? 0 : offset;
       const result = await FollowService.getFollowers(userId, 20, currentOffset);
-      
+
       if (result.success && result.data) {
         if (reset) {
           setFollowers(result.data);
@@ -53,7 +55,7 @@ const FollowersModal: React.FC<FollowersModalProps> = ({
         }
         setHasMore(result.hasMore);
         setOffset(currentOffset + result.data.length);
-        
+
         // Check follow states for each follower
         if (currentUser) {
           const followStates: Record<string, boolean> = {};
@@ -91,21 +93,29 @@ const FollowersModal: React.FC<FollowersModalProps> = ({
 
     try {
       const result = await FollowService.toggleFollow(targetUserId, isCurrentlyFollowing);
-      
+
       if (result.success) {
         setFollowingStates(prev => ({
           ...prev,
           [targetUserId]: !isCurrentlyFollowing
         }));
-        
+
         onFollowChange?.(targetUserId, !isCurrentlyFollowing);
       } else {
         console.error('Follow toggle failed:', result.error);
-        alert(`Failed to ${isCurrentlyFollowing ? 'unfollow' : 'follow'} ${targetUserName}`);
+        toast({
+          title: "Follow Failed",
+          description: `Failed to ${isCurrentlyFollowing ? 'unfollow' : 'follow'} ${targetUserName}`,
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error('Follow toggle error:', error);
-      alert(`Failed to ${isCurrentlyFollowing ? 'unfollow' : 'follow'} ${targetUserName}`);
+      toast({
+        title: "Error",
+        description: `Failed to ${isCurrentlyFollowing ? 'unfollow' : 'follow'} ${targetUserName}. Please try again.`,
+        variant: "destructive"
+      });
     } finally {
       setLoadingStates(prev => ({ ...prev, [targetUserId]: false }));
     }
@@ -125,7 +135,7 @@ const FollowersModal: React.FC<FollowersModalProps> = ({
             {userName}'s Followers
           </DialogTitle>
         </DialogHeader>
-        
+
         <div className="flex-1 overflow-hidden">
           {loading ? (
             <div className="flex items-center justify-center py-8">
@@ -145,15 +155,15 @@ const FollowersModal: React.FC<FollowersModalProps> = ({
                     className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors"
                   >
                     <Avatar className="w-10 h-10">
-                      <AvatarImage 
-                        src={follower.profile_picture || undefined} 
+                      <AvatarImage
+                        src={follower.profile_picture || undefined}
                         alt={follower.name}
                       />
                       <AvatarFallback>
                         {follower.name?.charAt(0)?.toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
-                    
+
                     <div className="flex-1 min-w-0">
                       <h3 className="font-medium text-gray-900 truncate">
                         {follower.name}
@@ -167,7 +177,7 @@ const FollowersModal: React.FC<FollowersModalProps> = ({
                         </p>
                       )}
                     </div>
-                    
+
                     {!isOwnProfile && currentUser && (
                       <Button
                         size="sm"
@@ -192,7 +202,7 @@ const FollowersModal: React.FC<FollowersModalProps> = ({
                   </div>
                 );
               })}
-              
+
               {hasMore && (
                 <div className="text-center pt-4">
                   <Button

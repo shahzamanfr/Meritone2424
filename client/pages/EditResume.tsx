@@ -379,7 +379,10 @@ export default function EditResumePage() {
   const loadExampleResume = () => {
     if (confirm('This will replace your current resume with a professional example. Continue?')) {
       setResume({ ...EXAMPLE_RESUME, user_id: profile?.id || "" });
-      alert('Example resume loaded! Review and customize it for your needs.');
+      toast({
+        title: "Example Loaded",
+        description: "Review and customize it for your needs.",
+      });
     }
   };
 

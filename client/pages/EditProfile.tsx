@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -27,6 +28,7 @@ const EditProfile: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, isEmailVerified, loading: authLoading } = useAuth();
   const { profile, loading, hasProfile, updateProfile, uploadProfilePicture } = useProfile();
+  const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currentSkill, setCurrentSkill] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -89,13 +91,21 @@ const EditProfile: React.FC = () => {
     if (file) {
       // Validate file type
       if (!file.type.startsWith('image/')) {
-        alert('Please select an image file');
+        toast({
+          title: "Invalid File",
+          description: "Please select an image file",
+          variant: "destructive"
+        });
         return;
       }
 
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        alert('File size must be less than 5MB');
+        toast({
+          title: "File Too Large",
+          description: "File size must be less than 5MB",
+          variant: "destructive"
+        });
         return;
       }
 
@@ -141,9 +151,15 @@ const EditProfile: React.FC = () => {
       return;
     }
 
-    if (profileData.skillsOffered.length === 0) {
+    if (profileData.skillsOffered.length === 0 && !profileData.workWanted.trim()) {
       console.log('[EditProfile] Validation failed: At least one skill is required');
-      setSuccessMessage('At least one skill is required');
+      setSuccessMessage('At least one skill is required (offered or wanted)');
+      return;
+    }
+
+    if (!profileData.bio.trim()) {
+      console.log('[EditProfile] Validation failed: Bio is required');
+      setSuccessMessage('A bio is required for a complete profile');
       return;
     }
 

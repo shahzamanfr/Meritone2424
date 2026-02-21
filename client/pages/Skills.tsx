@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -71,6 +72,7 @@ interface Trade {
 const Skills: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
+  const { toast } = useToast();
   const { profile, hasProfile } = useProfile();
 
   // State management
@@ -174,7 +176,11 @@ const Skills: React.FC = () => {
     e.preventDefault();
 
     if (!isAuthenticated) {
-      alert('Please sign in to create a completion report');
+      toast({
+        title: "Signin Required",
+        description: "Please sign in to create a completion report",
+        variant: "destructive"
+      });
       return;
     }
 

@@ -24,6 +24,9 @@ export default function Index() {
   const { toast } = useToast();
 
   const handleGetStartedClick = () => {
+    // Prevent redirect if profile/auth is still loading
+    if (loading) return;
+
     if (!isAuthenticated) {
       navigate("/signin");
     } else if (!isEmailVerified) {

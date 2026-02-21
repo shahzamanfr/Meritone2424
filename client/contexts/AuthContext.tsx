@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { messagingService } from '@/lib/unified-messaging.service';
@@ -20,6 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   const signUp = async (email: string, password: string) => {
     try {
@@ -73,19 +75,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     try {
+      setLoading(true);
       // Mark user offline before signing out (non-blocking)
       if (user?.id) {
-        messagingService.updateUserStatus(user.id, false);
-        messagingService.cleanup();
+        try {
+          await messagingService.updateUserStatus(user.id, false);
+          messagingService.cleanup();
+        } catch (e) {
+          console.warn('Messaging cleanup failed:', e);
+        }
       }
+
+      // Clear Supabase session
       await supabase.auth.signOut();
+
+      // Clear any potential lingering items in localStorage
+      localStorage.removeItem('supabase.auth.token');
+
     } catch (error) {
       console.error('Sign out error:', error);
     } finally {
       // Force clear local state regardless of API result
-      // This handles 403/401 token expiry cases where API fails but user wants to logout
       setSession(null);
       setUser(null);
+      setLoading(false);
+
+      // Clear all react-query and memory cache
+      queryClient.clear();
+
+      // Optional: force reload to catch all leakages
+      // window.location.href = '/signin';
     }
   };
 

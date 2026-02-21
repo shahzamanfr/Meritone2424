@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { UserPlus, UserCheck, Loader2 } from 'lucide-react';
 import { FollowService, FollowRelationship, FollowResult } from '@/lib/follow.service';
@@ -25,6 +26,7 @@ export const FollowButton: React.FC<FollowButtonProps> = ({
   showUnfollowConfirm = true
 }) => {
   const { user: currentUser } = useAuth();
+  const { toast } = useToast();
   const [relationship, setRelationship] = useState<FollowRelationship>({
     isFollowing: false,
     followerCount: 0,
@@ -100,7 +102,11 @@ export const FollowButton: React.FC<FollowButtonProps> = ({
 
         console.error('Follow toggle failed:', result.error);
         // Show error message to user
-        alert(`Failed to ${newFollowingState ? 'follow' : 'unfollow'} user: ${result.error}`);
+        toast({
+          title: "Follow Failed",
+          description: `Failed to ${newFollowingState ? 'follow' : 'unfollow'} user: ${result.error}`,
+          variant: "destructive"
+        });
       }
     } catch (error) {
       // Revert optimistic update on error
@@ -109,7 +115,11 @@ export const FollowButton: React.FC<FollowButtonProps> = ({
       onFollowChange?.(originalRelationship);
 
       console.error('Follow toggle error:', error);
-      alert(`Failed to ${newFollowingState ? 'follow' : 'unfollow'} user. Please try again.`);
+      toast({
+        title: "Error",
+        description: `Failed to ${newFollowingState ? 'follow' : 'unfollow'} user. Please try again.`,
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }

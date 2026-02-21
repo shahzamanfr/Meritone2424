@@ -12,8 +12,8 @@ import { UserSearchDropdown } from "./UserSearchDropdown";
 import { UserSearchResult } from "@/lib/user-search.service";
 
 export default function Header() {
-  const { isAuthenticated, signOut, isEmailVerified, user } = useAuth();
-  const { profile, hasProfile, loading } = useProfile();
+  const { isAuthenticated, signOut, loading: authLoading, user } = useAuth();
+  const { profile, hasProfile, loading: profileLoading } = useProfile();
   const { toast } = useToast();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -29,6 +29,8 @@ export default function Header() {
   };
 
   const handleProfileClick = () => {
+    if (profileLoading) return;
+
     if (hasProfile) {
       navigate("/profile");
     } else {
@@ -140,8 +142,10 @@ export default function Header() {
 
             {/* Desktop Auth */}
             <div className="hidden md:flex items-center space-x-4">
-              {isAuthenticated ? (
-                loading ? (
+              {authLoading ? (
+                <div className="h-8 w-64 rounded-xl bg-gray-50 animate-pulse" />
+              ) : isAuthenticated ? (
+                profileLoading ? (
                   <div className="h-8 w-8 rounded-full bg-gray-100 animate-pulse border border-gray-200" />
                 ) : hasProfile ? (
                   <DropdownMenu>
@@ -324,9 +328,18 @@ export default function Header() {
                 )}
               </div>
 
-              {/* Mobile Auth */}
               <div className="border-t border-gray-200 pt-4">
-                {isAuthenticated ? (
+                {authLoading ? (
+                  <div className="space-y-4 animate-pulse">
+                    <div className="flex items-center space-x-3 p-2">
+                      <div className="h-10 w-10 rounded-full bg-gray-100" />
+                      <div className="space-y-2">
+                        <div className="h-4 w-24 bg-gray-100 rounded" />
+                        <div className="h-3 w-32 bg-gray-100 rounded" />
+                      </div>
+                    </div>
+                  </div>
+                ) : isAuthenticated ? (
                   <div className="space-y-4">
                     <div className="flex items-center space-x-3 p-2">
                       <Avatar className="h-10 w-10">

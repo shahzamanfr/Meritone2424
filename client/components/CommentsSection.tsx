@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -57,6 +58,65 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
     if (showComments) {
       loadPostComments();
     }
+  }, [showComments, postId]);
+
+  // Realtime subscription for comments
+  useEffect(() => {
+    if (!showComments || !postId) return;
+
+    const channel = supabase
+      .channel(`post_comments:${postId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'post_comments',
+          filter: `post_id=eq.${postId}`
+        },
+        async (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newComment = payload.new as Comment;
+
+            setComments(prev => {
+              // Avoid duplicates
+              if (prev.some(c => c.id === newComment.id)) return prev;
+
+              // Fetch user profile for the new comment
+              const fetchProfile = async () => {
+                const { data: profileData } = await supabase
+                  .from('profiles')
+                  .select('user_id, name, profile_picture, email')
+                  .eq('user_id', newComment.user_id)
+                  .single();
+
+                if (profileData) {
+                  setComments(current => current.map(c =>
+                    c.id === newComment.id ? { ...c, user: profileData } : c
+                  ));
+                }
+              };
+
+              fetchProfile();
+
+              return [...prev, { ...newComment, user: undefined }];
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedComment = payload.new as Comment;
+            setComments(prev => prev.map(c =>
+              c.id === updatedComment.id ? { ...c, ...updatedComment } : c
+            ));
+          } else if (payload.eventType === 'DELETE') {
+            const deletedId = payload.old.id;
+            setComments(prev => prev.filter(c => c.id !== deletedId));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [showComments, postId]);
 
   const handleSubmitComment = async () => {

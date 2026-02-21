@@ -139,13 +139,18 @@ const Messages: React.FC = () => {
     };
   }, [user?.id, location?.state?.openWithUserId]);
 
-  const { isProfileComplete } = useProfile();
+  const { isProfileComplete, loading: profileLoading } = useProfile();
+  const [hasCheckedProfile, setHasCheckedProfile] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && user && !isProfileComplete) {
-      navigate('/edit-profile', { replace: true });
+    // Only redirect if both auth and profile satisfy the loaded state
+    if (!authLoading && !profileLoading && user) {
+      if (!isProfileComplete) {
+        navigate('/edit-profile', { replace: true });
+      }
+      setHasCheckedProfile(true);
     }
-  }, [authLoading, user, isProfileComplete, navigate]);
+  }, [authLoading, profileLoading, user, isProfileComplete, navigate]);
 
   // Load messages when conversation is selected
   useEffect(() => {
@@ -266,10 +271,13 @@ const Messages: React.FC = () => {
     );
   }
 
-  if (loading) {
+  if (loading || profileLoading) {
     return (
       <div className="h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <p className="mt-2 text-sm text-gray-500">Syncing chat profile...</p>
+        </div>
       </div>
     );
   }

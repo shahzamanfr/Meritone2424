@@ -85,119 +85,73 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const loadPosts = useCallback(async (reset = false) => {
     // Prevent multiple simultaneous loads
     if (loading && !reset) {
-      console.log('⏸️ Skipping load - already loading');
       return;
     }
 
     try {
       setLoading(true);
-      setError(null); // Clear previous errors
+      setError(null);
       const currentOffset = reset ? 0 : offset;
 
       if (import.meta.env.DEV) {
-        console.log('🔍 Fetching posts with optimized query...', { currentOffset, POSTS_PER_PAGE, userId: user?.id });
+        console.log('🚀 Fetching posts via RPC...', { currentOffset, POSTS_PER_PAGE });
       }
 
-      // Simple, direct query - GUARANTEED to work
-      const startTime = performance.now();
+      const { data: rpcPosts, error: rpcError } = await supabase.rpc('get_posts_with_details', {
+        limit_count: POSTS_PER_PAGE,
+        offset_count: currentOffset
+      });
 
-      const { data: rawPosts, error: postsError } = await supabase
-        .from('posts')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .range(currentOffset, currentOffset + POSTS_PER_PAGE - 1);
-
-      const postsQueryTime = performance.now() - startTime;
-      console.log(`⏱️ Posts query took: ${postsQueryTime.toFixed(2)}ms`);
-
-      if (postsError) {
-        const errorMsg = postsError.message || 'Failed to load posts';
-        setError(errorMsg);
-        console.error('❌ Error fetching posts:', postsError);
-        console.error('Error details:', JSON.stringify(postsError, null, 2));
-
-        // Check if it's an RLS policy error
-        if (postsError.code === 'PGRST301' || postsError.message?.includes('policy')) {
-          setError('Unable to load posts. Please check your permissions or try signing in again.');
-        }
+      if (rpcError) {
+        console.error('❌ RPC Error:', rpcError);
+        setError(rpcError.message || 'Failed to load posts');
         return;
       }
 
-      if (import.meta.env.DEV) {
-        console.log('✅ Posts fetched:', rawPosts?.length || 0, 'posts');
-      }
-
-      if (!rawPosts || rawPosts.length === 0) {
-        console.log('⚠️ No posts found in database');
+      if (!rpcPosts || rpcPosts.length === 0) {
         setHasMore(false);
         if (reset) setPosts([]);
         return;
       }
 
       // Check if we have more posts
-      setHasMore(rawPosts.length === POSTS_PER_PAGE);
+      setHasMore(rpcPosts.length === POSTS_PER_PAGE);
 
-      // Get unique user IDs
-      const userIds = [...new Set(rawPosts.map(post => post.user_id))];
-
-      // Fetch profiles in parallel
-      const profilesStartTime = performance.now();
-
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id, name, profile_picture, email')
-        .in('user_id', userIds);
-
-      const profilesQueryTime = performance.now() - profilesStartTime;
-      console.log(`⏱️ Profiles query took: ${profilesQueryTime.toFixed(2)}ms`);
-      console.log(`⏱️ TOTAL query time: ${(postsQueryTime + profilesQueryTime).toFixed(2)}ms`);
-
-      // Create profile map
-      const profileMap = new Map(
-        (profiles || []).map(p => [p.user_id, p])
-      );
-
-      // Fetch user's likes if authenticated
-      let userLikes = new Set<string>();
-      console.log('🔍 Checking user for likes query:', { userId: user?.id, hasUser: !!user });
-      if (user?.id) {
-        const { data: likes, error: likesError } = await supabase
-          .from('post_likes')
-          .select('post_id')
-          .eq('user_id', user.id)
-          .in('post_id', rawPosts.map(p => p.id));
-
-        if (likesError) {
-          console.error('Error fetching user likes:', likesError);
-        }
-
-        if (likes) {
-          userLikes = new Set(likes.map(l => l.post_id));
-          console.log(`✅ Loaded ${likes.length} likes for current user`);
-        }
-      } else {
-        console.log('⚠️ No user authenticated, skipping likes query');
-      }
-
-      // Transform posts
-      const postsWithUsers = rawPosts.map(post => ({
-        ...post,
-        user: profileMap.get(post.user_id) || { name: 'Unknown', profile_picture: null, email: null },
-        isLiked: userLikes.has(post.id)
+      // Transform RPC results to Post interface
+      const transformedPosts: Post[] = rpcPosts.map((p: any) => ({
+        id: p.id,
+        user_id: p.user_id,
+        title: p.title,
+        content: p.content,
+        post_type: p.post_type,
+        skills_offered: p.skills_offered,
+        skills_needed: p.skills_needed,
+        experience_level: p.experience_level,
+        availability: p.availability,
+        deadline: p.deadline,
+        media_urls: p.media_urls,
+        likes_count: Number(p.total_likes || p.likes_count || 0),
+        comments_count: Number(p.total_comments || p.comments_count || 0),
+        created_at: p.created_at,
+        updated_at: p.updated_at,
+        user: {
+          name: p.user_name || 'Unknown',
+          profile_picture: p.user_profile_picture || '',
+          email: p.user_email || '' // RPC doesn't currently return email, but interface needs it
+        },
+        isLiked: user?.id ? (p.liked_by_user_ids || []).includes(user.id) : false
       }));
 
-
       if (reset) {
-        setPosts(postsWithUsers);
+        setPosts(transformedPosts);
         setOffset(POSTS_PER_PAGE);
       } else {
-        setPosts(prev => [...prev, ...postsWithUsers]);
+        setPosts(prev => [...prev, ...transformedPosts]);
         setOffset(currentOffset + POSTS_PER_PAGE);
       }
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'An unexpected error occurred while loading posts';
-      setError(errorMsg);
       console.error('Error in loadPosts:', error);
+      setError('An unexpected error occurred while loading posts');
     } finally {
       setLoading(false);
     }
@@ -421,41 +375,33 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const loadComments = async (postId: string): Promise<Comment[]> => {
     try {
-      const { data: comments, error } = await supabase
-        .from('post_comments')
-        .select('*')
-        .eq('post_id', postId)
-        .order('created_at', { ascending: true });
+      const { data: rpcComments, error } = await supabase.rpc('get_post_comments_with_users', {
+        target_post_id: postId
+      });
 
       if (error) {
-        console.error('Error loading comments:', error);
+        console.error('Error loading comments via RPC:', error);
         return [];
       }
 
-      if (!comments || comments.length === 0) return [];
+      if (!rpcComments || rpcComments.length === 0) return [];
 
-      const userIds = [...new Set(comments.map(c => c.user_id))];
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('user_id, name, profile_picture, email')
-        .in('user_id', userIds);
-
-      if (profilesError) {
-        if (import.meta.env.DEV) {
-          console.error('Error loading comment profiles:', profilesError);
+      // Transform RPC results to Comment interface
+      return rpcComments.map((c: any) => ({
+        id: c.id,
+        post_id: c.post_id,
+        user_id: c.user_id,
+        content: c.content,
+        created_at: c.created_at,
+        updated_at: c.updated_at,
+        user: {
+          name: c.user_name || 'Unknown',
+          profile_picture: c.user_profile_picture || '',
+          email: '' // Not returned by RPC
         }
-        return comments;
-      }
-
-      const profileMap = new Map<string, { user_id: string; name: string; profile_picture: string | null; email: string }>();
-      profiles?.forEach(p => profileMap.set(p.user_id, p as any));
-
-      return comments.map(comment => ({
-        ...comment,
-        user: profileMap.get(comment.user_id) || undefined,
       }));
     } catch (error) {
-      console.error('Error loading comments:', error);
+      console.error('Error in loadComments:', error);
       return [];
     }
   };
@@ -475,6 +421,73 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     loadPostsRef.current = loadPosts;
   }, [loadPosts]);
 
+  // Supabase Realtime subscription for posts
+  useEffect(() => {
+    const channel = supabase
+      .channel('public:posts')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'posts' },
+        async (payload) => {
+          if (import.meta.env.DEV) {
+            console.log('📬 Realtime post update received:', payload);
+          }
+
+          if (payload.eventType === 'INSERT') {
+            const newPost = payload.new as Post;
+
+            // Check if we already have this post (to avoid duplications from manual refreshes)
+            setPosts(prev => {
+              if (prev.some(p => p.id === newPost.id)) return prev;
+
+              // Fetch profile for the new post
+              const fetchProfile = async () => {
+                const { data: profile } = await supabase
+                  .from('profiles')
+                  .select('user_id, name, profile_picture, email')
+                  .eq('user_id', newPost.user_id)
+                  .single();
+
+                setPosts(currentPosts =>
+                  currentPosts.map(p =>
+                    p.id === newPost.id
+                      ? { ...p, user: profile || { name: 'Unknown', profile_picture: '', email: '' } }
+                      : p
+                  )
+                );
+              };
+
+              fetchProfile();
+
+              // Add post to state immediately, with placeholder user
+              return [{
+                ...newPost,
+                user: { name: 'Loading...', profile_picture: '', email: '' },
+                isLiked: false,
+                likes_count: newPost.likes_count || 0,
+                comments_count: newPost.comments_count || 0
+              }, ...prev];
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedPost = payload.new as Post;
+            setPosts(prev => prev.map(p =>
+              p.id === updatedPost.id
+                ? { ...p, ...updatedPost }
+                : p
+            ));
+          } else if (payload.eventType === 'DELETE') {
+            const deletedId = payload.old.id;
+            setPosts(prev => prev.filter(p => p.id !== deletedId));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   // Initial load - wait for auth to initialize before loading posts
   useEffect(() => {
     if (!initialLoadDone.current && !authLoading) {
@@ -489,6 +502,21 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     initialLoadDone.current = false;
     loadPosts(true);
   }, [loadPosts]);
+
+  const resetState = useCallback(() => {
+    setPosts([]);
+    setOffset(0);
+    setHasMore(true);
+    setError(null);
+    initialLoadDone.current = false;
+  }, []);
+
+  // Reset state when user logs out
+  useEffect(() => {
+    if (!authLoading && !user) {
+      resetState();
+    }
+  }, [user, authLoading, resetState]);
 
   const value: PostsContextType = useMemo(() => ({
     posts,

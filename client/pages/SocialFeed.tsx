@@ -63,11 +63,11 @@ const SocialFeed: React.FC = () => {
 
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
-  const { posts, loading, error, hasMore, loadMorePosts, likePost, unlikePost, refreshPosts, deletePost, retryLoad } = usePosts();
+  const { posts, loading: postsLoading, error, hasMore, loadMorePosts, likePost, unlikePost, refreshPosts, deletePost, retryLoad } = usePosts();
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [filterType, setFilterType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const { profile: currentUserProfile, isProfileComplete } = useProfile();
+  const { profile: currentUserProfile, isProfileComplete, loading: profileLoading } = useProfile();
   const [sortBy, setSortBy] = useState<'latest' | 'popular'>('latest');
   const commentTogglesRef = React.useRef<Map<string, () => void>>(new Map());
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
@@ -106,7 +106,7 @@ const SocialFeed: React.FC = () => {
 
   // Infinite scroll hook
   const loadMoreRef = useInfiniteScroll({
-    loading,
+    loading: postsLoading,
     hasMore,
     onLoadMore: loadMorePosts,
     threshold: 400
@@ -115,6 +115,9 @@ const SocialFeed: React.FC = () => {
   const [likingPosts, setLikingPosts] = useState<Set<string>>(new Set());
 
   const handleLike = async (postId: string) => {
+    // Don't allow likes while profile is loading
+    if (profileLoading) return;
+
     // Check if profile is complete
     if (!isProfileComplete) {
       toast({
@@ -391,13 +394,23 @@ const SocialFeed: React.FC = () => {
 
               {/* Profile Info */}
               <div className="p-4 text-center -mt-8">
-                <img
-                  src={getAvatarUrl(currentUserProfile?.profile_picture, currentUserProfile?.name)}
-                  alt="Profile"
-                  className="w-16 h-16 rounded-full mx-auto mb-3 border-4 border-white shadow-sm"
-                />
-                <h3 className="font-semibold text-gray-900">{currentUserProfile?.name || "Your Name"}</h3>
-                <p className="text-sm text-gray-500 mt-1">Professional Network</p>
+                {profileLoading ? (
+                  <div className="flex flex-col items-center">
+                    <div className="w-16 h-16 rounded-full bg-gray-100 animate-pulse border-4 border-white shadow-sm mb-3" />
+                    <div className="h-4 w-24 bg-gray-100 animate-pulse rounded mb-1" />
+                    <div className="h-3 w-32 bg-gray-100 animate-pulse rounded" />
+                  </div>
+                ) : (
+                  <>
+                    <img
+                      src={getAvatarUrl(currentUserProfile?.profile_picture, currentUserProfile?.name)}
+                      alt="Profile"
+                      className="w-16 h-16 rounded-full mx-auto mb-3 border-4 border-white shadow-sm"
+                    />
+                    <h3 className="font-semibold text-gray-900">{currentUserProfile?.name || "Member"}</h3>
+                    <p className="text-sm text-gray-500 mt-1">Professional Network</p>
+                  </>
+                )}
               </div>
 
               {/* Stats */}
@@ -419,11 +432,15 @@ const SocialFeed: React.FC = () => {
             {/* Create Post Widget */}
             <div className="bg-white rounded-lg border border-gray-200 p-4 mb-3 shadow-sm">
               <div className="flex items-center space-x-4">
-                <img
-                  src={getAvatarUrl(currentUserProfile?.profile_picture, currentUserProfile?.name)}
-                  alt="Profile"
-                  className="w-10 h-10 rounded-full object-cover shrink-0"
-                />
+                {profileLoading ? (
+                  <div className="w-10 h-10 rounded-full bg-gray-100 animate-pulse shrink-0" />
+                ) : (
+                  <img
+                    src={getAvatarUrl(currentUserProfile?.profile_picture, currentUserProfile?.name)}
+                    alt="Profile"
+                    className="w-10 h-10 rounded-full object-cover shrink-0"
+                  />
+                )}
                 <button
                   onClick={() => navigate("/create-post")}
                   className="flex-1 text-left px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-full text-gray-500 hover:bg-gray-100 transition-colors text-sm font-medium"
@@ -514,7 +531,7 @@ const SocialFeed: React.FC = () => {
                       </Button>
                     </div>
                   </div>
-                ) : loading ? (
+                ) : postsLoading ? (
                   // Show loading spinner on initial load
                   <div className="flex flex-col items-center">
                     <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -787,7 +804,7 @@ const SocialFeed: React.FC = () => {
 
                 {/* Infinite Scroll Trigger */}
                 <div ref={loadMoreRef} className="py-8">
-                  {loading && hasMore && (
+                  {postsLoading && hasMore && (
                     <div className="flex justify-center">
                       <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
                     </div>

@@ -1,9 +1,13 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/lib/supabase';
 
-export type UserProfile = Database['public']['Tables']['profiles']['Row'] | null;
+export type UserProfile = (Database['public']['Tables']['profiles']['Row'] & {
+  followers_count?: number;
+  following_count?: number;
+  posts_count?: number;
+}) | null;
 
 // Simple cache for profile data
 const profileCache = new Map<string, { data: UserProfile; timestamp: number }>();
@@ -19,6 +23,7 @@ type ProfileContextType = {
   hasProfile: boolean;
   isProfileComplete: boolean;
   refreshProfile: () => Promise<void>;
+  clearProfileCache: () => void;
 };
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
@@ -50,6 +55,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       }
 
       setProfile(data);
+      // Refresh to get full stats and update the cache
+      await refreshProfile();
       return { success: true };
     } catch (error) {
       console.error('Create profile error:', error);
@@ -109,6 +116,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       }
 
       setProfile(data);
+      // Refresh to get full stats and update the cache
+      await refreshProfile();
       return { success: true };
     } catch (error) {
       console.error('Update profile error:', error);
@@ -172,6 +181,20 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const clearProfileCache = useCallback(() => {
+    if (user?.id) {
+      profileCache.delete(user.id);
+    }
+  }, [user?.id]);
+
+  // Clear profile data on logout
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      setProfile(null);
+      profileCache.clear(); // Complete wipe for safety
+    }
+  }, [isAuthenticated, authLoading]);
+
   useEffect(() => {
     // CRITICAL: specific check for auth loading to prevent race conditions
     if (authLoading) {
@@ -179,13 +202,16 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     }
 
     const loadProfile = async (force = false) => {
+      // If not authenticated, clear profile and stop
       if (!isAuthenticated || !user) {
         setProfile(null);
         setLoading(false);
         return;
       }
 
-      // CRITICAL: Set loading to true when starting to fetch
+      // If we are already loading, don't start another request (unless forced)
+      // but only if it's not the initial mount
+
       setLoading(true);
 
       // Check cache first (unless forced)
@@ -201,24 +227,23 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
+        const { data, error } = await supabase.rpc('get_user_profile_with_stats', {
+          target_user_id: user.id
+        });
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
-          console.error('Load profile error:', error);
+        if (error) {
+          console.error('Profile Load Error via RPC:', error);
+          setProfile(null);
+        } else {
+          const profileData = data?.[0] || null;
+          // Update cache
+          if (profileData) {
+            profileCache.set(user.id, { data: profileData, timestamp: Date.now() });
+          }
+          setProfile(profileData);
         }
-
-        // Update cache
-        if (data) {
-          profileCache.set(user.id, { data, timestamp: Date.now() });
-        }
-
-        setProfile(data || null);
       } catch (error) {
-        console.error('Load profile error:', error);
+        console.error('Unexpected Load profile error:', error);
         setProfile(null);
       } finally {
         setLoading(false);
@@ -226,33 +251,31 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     };
 
     loadProfile();
-  }, [user, isAuthenticated, authLoading]);
+  }, [user?.id, isAuthenticated, authLoading]);
 
   const refreshProfile = async () => {
-    // Explicitly call loadProfile with force = true
-    const forceLoad = async () => {
-      if (!user) return;
-      profileCache.delete(user.id);
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
+    if (!user) return;
 
-        if (!error || error.code === 'PGRST116') {
-          const profileData = data || null;
-          setProfile(profileData);
-          if (profileData) {
-            profileCache.set(user.id, { data: profileData, timestamp: Date.now() });
-          }
+    try {
+      setLoading(true);
+      profileCache.delete(user.id);
+
+      const { data, error } = await supabase.rpc('get_user_profile_with_stats', {
+        target_user_id: user.id
+      });
+
+      if (!error) {
+        const profileData = data?.[0] || null;
+        setProfile(profileData);
+        if (profileData) {
+          profileCache.set(user.id, { data: profileData, timestamp: Date.now() });
         }
-      } finally {
-        setLoading(false);
+      } else {
+        console.error('Refresh profile error via RPC:', error);
       }
-    };
-    await forceLoad();
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Check if profile is complete (name + bio + at least one skill)
@@ -279,7 +302,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     hasProfile: !!profile,
     isProfileComplete,
     refreshProfile,
-  }), [profile, loading, isProfileComplete]);
+    clearProfileCache,
+  }), [profile, loading, isProfileComplete, clearProfileCache]);
 
   return (
     <ProfileContext.Provider value={value}>

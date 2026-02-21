@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -40,6 +41,7 @@ const CreatePost: React.FC = () => {
   const [currentSkill, setCurrentSkill] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [postData, setPostData] = useState<PostData>({
@@ -125,8 +127,20 @@ const CreatePost: React.FC = () => {
     );
   }
 
-  // Check if profile is complete
-  const { isProfileComplete } = useProfile();
+  // Check if profile is complete (wait for loading)
+  const { isProfileComplete, loading: profileLoading } = useProfile();
+
+  if (loading || profileLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Syncing profile...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!isProfileComplete) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -208,7 +222,11 @@ const CreatePost: React.FC = () => {
     });
 
     if (validFiles.length !== newFiles.length) {
-      alert('Some files were skipped. Only images, videos, and PDFs under 10MB are allowed.');
+      toast({
+        title: "Files Skipped",
+        description: "Only images, videos, and PDFs under 10MB are allowed.",
+        variant: "destructive"
+      });
     }
 
     validFiles.forEach(file => {
@@ -239,12 +257,20 @@ const CreatePost: React.FC = () => {
 
   const handleSubmit = async () => {
     if (!isAuthenticated) {
-      alert('Please sign in to create a post');
+      toast({
+        title: "Signin Required",
+        description: "Please sign in to create a post",
+        variant: "destructive"
+      });
       return;
     }
 
     if (!hasProfile) {
-      alert('Please create a profile first');
+      toast({
+        title: "Profile Required",
+        description: "Please create a profile first",
+        variant: "destructive"
+      });
       navigate('/create-profile');
       return;
     }
@@ -269,17 +295,28 @@ const CreatePost: React.FC = () => {
       const { error, success } = await createPost(postDataForDB);
 
       if (error) {
-        alert(`Failed to create post: ${error}`);
+        toast({
+          title: "Post Failed",
+          description: `Failed to create post: ${error}`,
+          variant: "destructive"
+        });
         return;
       }
 
       if (success) {
-        alert('Post created successfully!');
+        toast({
+          title: "Post Created",
+          description: "Your post has been published successfully!",
+        });
         navigate('/feed');
       }
     } catch (error) {
       console.error('Error creating post:', error);
-      alert('An error occurred while creating your post');
+      toast({
+        title: "Error",
+        description: "An error occurred while creating your post",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -307,17 +344,28 @@ const CreatePost: React.FC = () => {
       const { error, success } = await updatePost(postToEdit.id, updates);
 
       if (error) {
-        alert(`Failed to update post: ${error}`);
+        toast({
+          title: "Update Failed",
+          description: `Failed to update post: ${error}`,
+          variant: "destructive"
+        });
         return;
       }
 
       if (success) {
-        alert('Post updated successfully!');
+        toast({
+          title: "Post Updated",
+          description: "Your post has been updated successfully!",
+        });
         navigate('/feed');
       }
     } catch (error) {
       console.error('Error updating post:', error);
-      alert('An error occurred while updating your post');
+      toast({
+        title: "Error",
+        description: "An error occurred while updating your post",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }

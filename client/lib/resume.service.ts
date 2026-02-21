@@ -64,8 +64,15 @@ export async function fetchMyResume(): Promise<Resume | null> {
 }
 
 export async function upsertMyResume(resume: Omit<Resume, "user_id">, explicitUserId?: string): Promise<Resume> {
+  console.log("[ResumeService] --- START UPSERT ---");
+  console.log("[ResumeService] Input userId:", explicitUserId);
   const userId = explicitUserId || await getCurrentUserId();
-  if (!userId) throw new Error("Not authenticated");
+  console.log("[ResumeService] Final userId to use:", userId);
+
+  if (!userId) {
+    console.error("[ResumeService] SAVE ABORTED: No user ID found.");
+    throw new Error("Not authenticated");
+  }
 
   // Ensure only valid fields are sent to the database
   const sanitizedPayload: any = {
@@ -87,6 +94,9 @@ export async function upsertMyResume(resume: Omit<Resume, "user_id">, explicitUs
     user_id: userId
   };
 
+  console.log("[ResumeService] Sanitized Payload Keys:", Object.keys(sanitizedPayload));
+  console.log("[ResumeService] Full Sanity Payload:", JSON.stringify(sanitizedPayload, null, 2));
+
   const { data, error } = await supabase
     .from("resumes")
     .upsert(sanitizedPayload, {
@@ -97,13 +107,16 @@ export async function upsertMyResume(resume: Omit<Resume, "user_id">, explicitUs
     .single();
 
   if (error) {
+    console.error("[ResumeService] SUPABASE ERROR:", JSON.stringify(error, null, 2));
     if (error.code === '23505') {
-      console.error("Conflict saving resume:", error.message);
+      console.error("[ResumeService] Unique constraint violation (23505):", error.message);
     } else if (error.message.includes('column')) {
-      console.error("Database schema mismatch. Please run the migration script (update_resumes_schema.sql) in Supabase:", error.message);
+      console.error("[ResumeService] Schema mismatch detected:", error.message);
     }
     throw error;
   }
+
+  console.log("[ResumeService] --- UPSERT SUCCESS ---", data?.id);
   return data as unknown as Resume;
 }
 

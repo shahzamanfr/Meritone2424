@@ -45,7 +45,7 @@ interface NewTradeData {
 const Trades: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user, isEmailVerified } = useAuth();
-  const { profile, hasProfile, isProfileComplete } = useProfile();
+  const { profile, hasProfile, isProfileComplete, loading: profileLoading } = useProfile();
 
   const [activeView, setActiveView] = useState<'list' | 'new-trade'>('list');
   const [trades, setTrades] = useState<Trade[]>([]);
@@ -130,6 +130,8 @@ const Trades: React.FC = () => {
       setError('Please sign in to create a trade');
       return;
     }
+
+    if (profileLoading) return;
 
     if (!isProfileComplete) {
       setError('Please complete your profile first (add bio and at least one skill)');
@@ -371,6 +373,7 @@ const Trades: React.FC = () => {
 
             <Button
               onClick={() => {
+                if (profileLoading) return;
                 if (!isProfileComplete) {
                   setError('Please complete your profile first (add bio and at least one skill)');
                   navigate('/edit-profile', { replace: true });
@@ -436,8 +439,8 @@ const Trades: React.FC = () => {
           </div>
         )}
 
-        {loading ? (
-          <LoadingSpinner size="lg" text="Loading trades..." />
+        {(loading || profileLoading) ? (
+          <LoadingSpinner size="lg" text="Syncing available trades..." />
         ) : filteredTrades.length === 0 ? (
           <div className="text-center py-12">
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No trades found</h3>
@@ -579,6 +582,7 @@ const Trades: React.FC = () => {
                             className="h-7 text-xs px-3 rounded-full flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all font-medium"
                             onClick={(e) => {
                               e.stopPropagation();
+                              if (profileLoading) return;
                               if (!isProfileComplete) {
                                 setError('Please complete your profile first (add bio and at least one skill)');
                                 navigate('/edit-profile', { replace: true });
@@ -664,7 +668,11 @@ const Trades: React.FC = () => {
                         {/* Add Comment Form */}
                         {isAuthenticated ? (
                           isEmailVerified ? (
-                            isProfileComplete ? (
+                            profileLoading ? (
+                              <div className="flex justify-center py-4">
+                                <div className="h-4 w-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+                              </div>
+                            ) : isProfileComplete ? (
                               <form
                                 onSubmit={(e) => handleAddInlineComment(trade.id, e)}
                                 className="flex items-start gap-2 pt-1 pb-1"

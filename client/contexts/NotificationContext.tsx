@@ -64,6 +64,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setNotifications([]);
   };
 
+  // Clear notifications on logout
+  useEffect(() => {
+    if (!user) {
+      setNotifications([]);
+    }
+  }, [user]);
+
   // Set up real-time subscriptions for notifications
   useEffect(() => {
     if (!user) return;
