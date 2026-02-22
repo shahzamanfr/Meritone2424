@@ -231,50 +231,34 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const likePost = async (postId: string) => {
     try {
-      const { error } = await supabase
-        .from('post_likes')
-        .insert([{ post_id: postId, user_id: user?.id }]);
+      if (!user?.id) return { error: 'Not authenticated', success: false };
 
-      if (error) {
-        // If it's a duplicate key error (409), treat it as already liked
-        if (error.code === '23505' || error.message.includes('duplicate') || error.message.includes('unique')) {
-          console.log('Post already liked, syncing state from database');
-          // Fetch the actual post data to get correct count
-          const { data: postData } = await supabase
-            .from('posts')
-            .select('likes_count')
-            .eq('id', postId)
-            .single();
-
-          setPosts(prevPosts =>
-            prevPosts.map(post =>
-              post.id === postId
-                ? { ...post, isLiked: true, likes_count: postData?.likes_count ?? post.likes_count }
-                : post
-            )
-          );
-          return { error: null, success: true };
-        }
-        console.error('Error liking post:', error);
-        return { error: error.message, success: false };
-      }
-
-      // Fetch the updated post to get the correct count from the database
-      // The trigger should have incremented it
-      const { data: postData } = await supabase
-        .from('posts')
-        .select('likes_count')
-        .eq('id', postId)
-        .single();
-
-      // Update local state with actual database count
+      // OPTIMISTIC UPDATE: Update UI immediately
       setPosts(prevPosts =>
         prevPosts.map(post =>
           post.id === postId
-            ? { ...post, isLiked: true, likes_count: postData?.likes_count ?? post.likes_count + 1 }
+            ? { ...post, isLiked: true, likes_count: post.likes_count + 1 }
             : post
         )
       );
+
+      const { error } = await supabase
+        .from('post_likes')
+        .insert([{ post_id: postId, user_id: user.id }]);
+
+      if (error) {
+        // Rollback on error
+        if (error.code !== '23505') { // Ignore unique constraint violations (already liked)
+          setPosts(prevPosts =>
+            prevPosts.map(post =>
+              post.id === postId
+                ? { ...post, isLiked: false, likes_count: Math.max(0, post.likes_count - 1) }
+                : post
+            )
+          );
+          return { error: error.message, success: false };
+        }
+      }
 
       return { error: null, success: true };
     } catch (error) {
@@ -285,32 +269,35 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const unlikePost = async (postId: string) => {
     try {
+      if (!user?.id) return { error: 'Not authenticated', success: false };
+
+      // OPTIMISTIC UPDATE: Update UI immediately
+      setPosts(prevPosts =>
+        prevPosts.map(post =>
+          post.id === postId
+            ? { ...post, isLiked: false, likes_count: Math.max(0, post.likes_count - 1) }
+            : post
+        )
+      );
+
       const { error } = await supabase
         .from('post_likes')
         .delete()
         .eq('post_id', postId)
-        .eq('user_id', user?.id);
+        .eq('user_id', user.id);
 
       if (error) {
+        // Rollback on error
+        setPosts(prevPosts =>
+          prevPosts.map(post =>
+            post.id === postId
+              ? { ...post, isLiked: true, likes_count: post.likes_count + 1 }
+              : post
+          )
+        );
         console.error('Error unliking post:', error);
         return { error: error.message, success: false };
       }
-
-      // Fetch the updated post to get the correct count from the database
-      const { data: postData } = await supabase
-        .from('posts')
-        .select('likes_count')
-        .eq('id', postId)
-        .single();
-
-      // Update local state with actual database count
-      setPosts(prevPosts =>
-        prevPosts.map(post =>
-          post.id === postId
-            ? { ...post, isLiked: false, likes_count: postData?.likes_count ?? Math.max(0, post.likes_count - 1) }
-            : post
-        )
-      );
 
       return { error: null, success: true };
     } catch (error) {
