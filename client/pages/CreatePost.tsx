@@ -98,7 +98,7 @@ const CreatePost: React.FC = () => {
   }
 
   if (!isAuthenticated) {
-    navigate('/signin');
+    navigate('/signin', { replace: true });
     return null;
   }
 

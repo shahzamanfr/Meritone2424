@@ -66,7 +66,7 @@ export default function VerifyEmail() {
 
     const handleLogout = async () => {
         await signOut();
-        navigate("/");
+        navigate("/", { replace: true });
     };
 
     return (

@@ -25,7 +25,7 @@ export default function Header() {
 
   const handleLogout = async () => {
     await signOut();
-    navigate("/");
+    navigate("/", { replace: true });
   };
 
   const handleProfileClick = () => {

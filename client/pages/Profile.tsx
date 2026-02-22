@@ -493,19 +493,19 @@ const Profile: React.FC = () => {
   if (!isViewingOtherUser && !hasRedirected.current) {
     if (!isAuthenticated) {
       hasRedirected.current = true;
-      navigate("/signin");
+      navigate("/signin", { replace: true });
       return null;
     }
 
     if (!isEmailVerified) {
       hasRedirected.current = true;
-      navigate("/verify-email");
+      navigate("/verify-email", { replace: true });
       return null;
     }
 
     if (!hasProfile) {
       hasRedirected.current = true;
-      navigate("/create-profile");
+      navigate("/create-profile", { replace: true });
       return null;
     }
   }

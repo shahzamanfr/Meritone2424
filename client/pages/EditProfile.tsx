@@ -55,17 +55,17 @@ const EditProfile: React.FC = () => {
 
     // Check authentication and profile status
     if (!isAuthenticated) {
-      navigate("/signin");
+      navigate("/signin", { replace: true });
       return;
     }
 
     if (!isEmailVerified) {
-      navigate("/verify-email");
+      navigate("/verify-email", { replace: true });
       return;
     }
 
     if (!hasProfile) {
-      navigate("/create-profile");
+      navigate("/create-profile", { replace: true });
       return;
     }
 
