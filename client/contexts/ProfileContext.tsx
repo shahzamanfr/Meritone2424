@@ -204,10 +204,13 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     const loadProfile = async (force = false) => {
       // If not authenticated, clear profile and stop
       if (!isAuthenticated || !user) {
+        console.log('[ProfileContext] Not authenticated or no user, clearing profile', { isAuthenticated, userId: user?.id });
         setProfile(null);
         setLoading(false);
         return;
       }
+
+      console.log('[ProfileContext] Loading profile for user:', user.id, 'email:', user.email);
 
       // If we are already loading, don't start another request (unless forced)
       // but only if it's not the initial mount
@@ -218,6 +221,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       if (!force) {
         const cached = profileCache.get(user.id);
         if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+          console.log('[ProfileContext] Using cached profile data');
           setProfile(cached.data);
           setLoading(false);
           return;
@@ -227,15 +231,49 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       }
 
       try {
+        console.log('[ProfileContext] Calling RPC get_user_profile_with_stats...');
         const { data, error } = await supabase.rpc('get_user_profile_with_stats', {
           target_user_id: user.id
         });
 
+        console.log('[ProfileContext] RPC result:', { data, error, dataLength: data?.length });
+
         if (error) {
-          console.error('Profile Load Error via RPC:', error);
-          setProfile(null);
+          console.error('[ProfileContext] RPC failed, trying direct query fallback:', error);
+          // FALLBACK: Query the profiles table directly if RPC fails
+          try {
+            const { data: fallbackData, error: fallbackError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('user_id', user.id)
+              .single();
+
+            console.log('[ProfileContext] Fallback result:', { fallbackData, fallbackError });
+
+            if (fallbackError) {
+              console.error('[ProfileContext] Fallback also failed:', fallbackError);
+              setProfile(null);
+            } else if (fallbackData) {
+              console.log('[ProfileContext] ✅ Profile loaded via fallback!', fallbackData.name);
+              const profileWithDefaults = {
+                ...fallbackData,
+                followers_count: 0,
+                following_count: 0,
+                posts_count: 0,
+              };
+              profileCache.set(user.id, { data: profileWithDefaults, timestamp: Date.now() });
+              setProfile(profileWithDefaults);
+            } else {
+              console.log('[ProfileContext] No profile found in fallback');
+              setProfile(null);
+            }
+          } catch (fallbackErr) {
+            console.error('[ProfileContext] Fallback unexpected error:', fallbackErr);
+            setProfile(null);
+          }
         } else {
           const profileData = data?.[0] || null;
+          console.log('[ProfileContext] RPC returned profileData:', profileData ? `name=${profileData.name}` : 'null');
           // Update cache
           if (profileData) {
             profileCache.set(user.id, { data: profileData, timestamp: Date.now() });
@@ -243,8 +281,29 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
           setProfile(profileData);
         }
       } catch (error) {
-        console.error('Unexpected Load profile error:', error);
-        setProfile(null);
+        console.error('[ProfileContext] Unexpected error, trying direct fallback:', error);
+        // FALLBACK: try direct query even on unexpected errors
+        try {
+          const { data: fallbackData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+
+          if (fallbackData) {
+            const profileWithDefaults = {
+              ...fallbackData,
+              followers_count: 0,
+              following_count: 0,
+              posts_count: 0,
+            };
+            setProfile(profileWithDefaults);
+          } else {
+            setProfile(null);
+          }
+        } catch {
+          setProfile(null);
+        }
       } finally {
         setLoading(false);
       }
@@ -271,7 +330,28 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
           profileCache.set(user.id, { data: profileData, timestamp: Date.now() });
         }
       } else {
-        console.error('Refresh profile error via RPC:', error);
+        console.error('Refresh profile error via RPC, trying fallback:', error);
+        // FALLBACK: direct query
+        try {
+          const { data: fallbackData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+
+          if (fallbackData) {
+            const profileWithDefaults = {
+              ...fallbackData,
+              followers_count: 0,
+              following_count: 0,
+              posts_count: 0,
+            };
+            profileCache.set(user.id, { data: profileWithDefaults, timestamp: Date.now() });
+            setProfile(profileWithDefaults);
+          }
+        } catch (fallbackErr) {
+          console.error('Fallback refresh query failed:', fallbackErr);
+        }
       }
     } finally {
       setLoading(false);

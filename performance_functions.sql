@@ -121,11 +121,11 @@ BEGIN
   SELECT 
     p.*,
     -- Count followers
-    (SELECT COUNT(*) FROM public.follows WHERE following_id = p.user_id)::BIGINT AS followers_count,
+    (SELECT COUNT(*) FROM public.follows f WHERE f.following_id = p.user_id)::BIGINT AS followers_count,
     -- Count following
-    (SELECT COUNT(*) FROM public.follows WHERE follower_id = p.user_id)::BIGINT AS following_count,
-    -- Count posts
-    (SELECT COUNT(*) FROM public.posts WHERE user_id = p.user_id)::BIGINT AS posts_count
+    (SELECT COUNT(*) FROM public.follows f2 WHERE f2.follower_id = p.user_id)::BIGINT AS following_count,
+    -- Count posts (FIXED: qualified posts.user_id to avoid ambiguity with RETURNS TABLE user_id)
+    (SELECT COUNT(*) FROM public.posts pt WHERE pt.user_id = p.user_id)::BIGINT AS posts_count
   FROM public.profiles p
   WHERE p.user_id = target_user_id;
 END;
