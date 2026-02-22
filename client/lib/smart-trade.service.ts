@@ -58,7 +58,14 @@ export async function findSmartTrades(userSkills: string[]): Promise<MatchedPost
         // Query ALL posts first
         const { data: posts, error } = await supabase
             .from('posts')
-            .select('*')
+            .select(`
+                *,
+                profiles:user_id (
+                    user_id,
+                    name,
+                    profile_picture
+                )
+            `)
             .order('created_at', { ascending: false })
             .limit(100);
 

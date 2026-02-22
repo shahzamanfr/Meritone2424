@@ -69,9 +69,9 @@ export function SmartTradeModal({ open, onOpenChange, matches, loading }: SmartT
                                 {/* User Info & Match Score */}
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center gap-2">
-                                        {match.profiles?.avatar_url ? (
+                                        {match.profiles?.profile_picture ? (
                                             <img
-                                                src={match.profiles.avatar_url}
+                                                src={match.profiles.profile_picture}
                                                 alt={match.profiles.name}
                                                 className="w-8 h-8 rounded-full object-cover"
                                             />

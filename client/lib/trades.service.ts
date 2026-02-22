@@ -17,6 +17,7 @@ export interface Comment {
 }
 
 export interface TradeWithComments extends Trade {
+  user_display_name: string;
   comments: Comment[];
 }
 
@@ -28,7 +29,17 @@ export class TradesService {
         .from('trades')
         .select(`
           *,
-          trade_comments(*)
+          profiles:user_id (
+            name,
+            profile_picture
+          ),
+          trade_comments(
+            *,
+            profiles:user_id (
+              name,
+              profile_picture
+            )
+          )
         `)
         .order('created_at', { ascending: false });
 
@@ -41,13 +52,15 @@ export class TradesService {
       const tradesWithComments: TradeWithComments[] = data?.map(trade => {
         return {
           ...trade,
+          user_display_name: (trade as any).profiles?.name || 'Anonymous User',
           comments: (trade.trade_comments as any[] || []).map(c => ({
             id: c.id,
             trade_id: c.trade_id,
             user_id: c.user_id,
             content: c.content,
-            user_display_name: c.user_display_name,
-            user_profile_picture: c.user_profile_picture,
+            status: c.status,
+            user_display_name: c.profiles?.name || 'Anonymous User',
+            user_profile_picture: c.profiles?.profile_picture || null,
             created_at: c.created_at,
             updated_at: c.updated_at
           }))
@@ -68,7 +81,17 @@ export class TradesService {
         .from('trades')
         .select(`
           *,
-          trade_comments(*)
+          profiles:user_id (
+            name,
+            profile_picture
+          ),
+          trade_comments(
+            *,
+            profiles:user_id (
+              name,
+              profile_picture
+            )
+          )
         `)
         .eq('id', id)
         .single();
@@ -80,13 +103,15 @@ export class TradesService {
 
       const tradeWithComments: TradeWithComments = {
         ...data,
+        user_display_name: (data as any).profiles?.name || 'Anonymous User',
         comments: (data.trade_comments as any[] || []).map(c => ({
           id: c.id,
           trade_id: c.trade_id,
           user_id: c.user_id,
           content: c.content,
-          user_display_name: c.user_display_name,
-          user_profile_picture: c.user_profile_picture,
+          status: c.status,
+          user_display_name: c.profiles?.name || 'Anonymous User',
+          user_profile_picture: c.profiles?.profile_picture || null,
           created_at: c.created_at,
           updated_at: c.updated_at
         }))
@@ -106,7 +131,6 @@ export class TradesService {
     skillOffered: string;
     skillWanted: string;
     userId: string;
-    userDisplayName: string;
     location?: string;
     deadline?: string;
   }): Promise<{ data: TradeWithComments | null; error: string | null }> {
@@ -117,9 +141,7 @@ export class TradesService {
         skill_offered: tradeData.skillOffered,
         skill_wanted: tradeData.skillWanted,
         user_id: tradeData.userId,
-        user_display_name: tradeData.userDisplayName,
         status: 'Open',
-        comments: [],
         location: tradeData.location || null,
         deadline: tradeData.deadline || null,
       };
@@ -137,7 +159,8 @@ export class TradesService {
 
       const tradeWithComments: TradeWithComments = {
         ...data,
-        comments: data.comments || []
+        user_display_name: 'Anonymous User', // Initial value until refresh
+        comments: []
       };
 
       return { data: tradeWithComments, error: null };
@@ -205,8 +228,7 @@ export class TradesService {
           trade_id: tradeId,
           user_id: comment.user_id || comment.userId,
           content: comment.content || comment.text,
-          user_display_name: comment.user_display_name || comment.author,
-          user_profile_picture: comment.user_profile_picture || null
+          status: 'pending'
         })
         .select()
         .single();
@@ -223,6 +245,26 @@ export class TradesService {
     }
   }
 
+  // Delete a comment from a trade
+  static async deleteComment(tradeId: string, commentId: string): Promise<{ error: string | null }> {
+    try {
+      const { error } = await supabase
+        .from('trade_comments')
+        .delete()
+        .eq('id', commentId);
+
+      if (error) {
+        console.error('Error deleting comment:', error);
+        return { error: error.message };
+      }
+
+      return { error: null };
+    } catch (error) {
+      console.error('Error in deleteComment:', error);
+      return { error: 'Failed to delete comment' };
+    }
+  }
+
   // Get trades for a specific user (for Profille page)
   static async getTradesByUserId(userId: string): Promise<{ data: TradeWithComments[] | null; error: string | null }> {
     try {
@@ -230,7 +272,17 @@ export class TradesService {
         .from('trades')
         .select(`
           *,
-          trade_comments(*)
+          profiles:user_id (
+            name,
+            profile_picture
+          ),
+          trade_comments(
+            *,
+            profiles:user_id (
+              name,
+              profile_picture
+            )
+          )
         `)
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
@@ -242,13 +294,15 @@ export class TradesService {
 
       const tradesWithComments: TradeWithComments[] = data?.map(trade => ({
         ...trade,
+        user_display_name: (trade as any).profiles?.name || 'Anonymous User',
         comments: (trade.trade_comments as any[] || []).map(c => ({
           id: c.id,
           trade_id: c.trade_id,
           user_id: c.user_id,
           content: c.content,
-          user_display_name: c.user_display_name,
-          user_profile_picture: c.user_profile_picture,
+          status: c.status,
+          user_display_name: c.profiles?.name || 'Anonymous User',
+          user_profile_picture: c.profiles?.profile_picture || null,
           created_at: c.created_at,
           updated_at: c.updated_at
         }))
@@ -264,32 +318,13 @@ export class TradesService {
   // Update comment status (accept/reject)
   static async updateCommentStatus(tradeId: string, commentId: string, status: 'accepted' | 'rejected'): Promise<{ error: string | null }> {
     try {
-      // First get the current trade
-      const { data: trade, error: fetchError } = await supabase
-        .from('trades')
-        .select('comments')
-        .eq('id', tradeId)
-        .single();
-
-      if (fetchError) {
-        console.error('Error fetching trade for comment update:', fetchError);
-        return { error: fetchError.message };
-      }
-
-      // Update the comment status
-      const currentComments = trade.comments || [];
-      const updatedComments = currentComments.map((comment: Comment) =>
-        comment.id === commentId ? { ...comment, status } : comment
-      );
-
-      // Update the trade with the updated comments
       const { error } = await supabase
-        .from('trades')
+        .from('trade_comments')
         .update({
-          comments: updatedComments,
+          status,
           updated_at: new Date().toISOString()
         })
-        .eq('id', tradeId);
+        .eq('id', commentId);
 
       if (error) {
         console.error('Error updating comment status:', error);

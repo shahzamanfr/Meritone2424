@@ -25,7 +25,8 @@ import {
   ChevronUp,
   ChevronDown,
   Send,
-  Pencil
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
@@ -206,7 +207,6 @@ const Trades: React.FC = () => {
           skillOffered,
           skillWanted,
           userId: user.id,
-          userDisplayName: profile?.name || 'Anonymous User',
           location: newTrade.location?.trim(),
           deadline: newTrade.deadline
         });
@@ -303,6 +303,26 @@ const Trades: React.FC = () => {
       setError('An unexpected error occurred while adding the comment');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteTradeComment = async (tradeId: string, commentId: string) => {
+    try {
+      const { error } = await TradesService.deleteComment(tradeId, commentId);
+      if (error) {
+        setError(`Failed to delete comment: ${error}`);
+        return;
+      }
+
+      // Update local state
+      setTrades(prev => prev.map(t => {
+        if (t.id === tradeId) {
+          return { ...t, comments: (t.comments || []).filter(c => c.id !== commentId) };
+        }
+        return t;
+      }));
+    } catch (err) {
+      console.error('Error deleting comment:', err);
     }
   };
 
@@ -634,12 +654,24 @@ const Trades: React.FC = () => {
                                     </AvatarFallback>
                                   </Avatar>
                                   <div className="flex-1 min-w-0 bg-white rounded-2xl px-3 py-2 border border-slate-100 shadow-sm">
-                                    <div className="flex items-center justify-between gap-2 mb-1">
+                                    <div className="flex items-center gap-2">
                                       <span className="font-semibold text-xs text-slate-900 truncate">{comment.user_display_name}</span>
-                                      <span className="text-[10px] text-slate-400 flex-shrink-0">
-                                        {formatDistanceToNow(new Date(comment.created_at))} ago
-                                      </span>
+                                      {user && comment.user_id === user.id && (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteTradeComment(trade.id, comment.id);
+                                          }}
+                                          className="text-slate-400 hover:text-red-500 transition-colors"
+                                          title="Delete comment"
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                        </button>
+                                      )}
                                     </div>
+                                    <span className="text-[10px] text-slate-400 flex-shrink-0">
+                                      {formatDistanceToNow(new Date(comment.created_at))} ago
+                                    </span>
                                     <p className="text-sm text-slate-700 leading-relaxed">{comment.content}</p>
                                     <div className="flex items-center gap-2 mt-1.5">
                                       {comment.status === 'accepted' && (

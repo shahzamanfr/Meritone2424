@@ -27,9 +27,7 @@ export type Database = {
           skill_offered: string
           skill_wanted: string
           user_id: string
-          user_display_name: string
           status: 'Open' | 'Closed' | 'Assigned' | 'Completed'
-          comments: any[] | null
           location: string | null
           deadline: string | null
           created_at: string
@@ -42,9 +40,7 @@ export type Database = {
           skill_offered: string
           skill_wanted: string
           user_id: string
-          user_display_name: string
           status?: 'Open' | 'Closed' | 'Assigned' | 'Completed'
-          comments?: any[] | null
           location?: string | null
           deadline?: string | null
           created_at?: string
@@ -57,9 +53,7 @@ export type Database = {
           skill_offered?: string
           skill_wanted?: string
           user_id?: string
-          user_display_name?: string
           status?: 'Open' | 'Closed' | 'Assigned' | 'Completed'
-          comments?: any[] | null
           location?: string | null
           deadline?: string | null
           created_at?: string
@@ -72,8 +66,7 @@ export type Database = {
           trade_id: string
           user_id: string
           content: string
-          user_display_name: string
-          user_profile_picture: string | null
+          status: 'pending' | 'accepted' | 'rejected'
           created_at: string
           updated_at: string
         }
@@ -82,8 +75,6 @@ export type Database = {
           trade_id: string
           user_id: string
           content: string
-          user_display_name: string
-          user_profile_picture?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -91,9 +82,7 @@ export type Database = {
           id?: string
           trade_id?: string
           user_id?: string
-          content?: string
-          user_display_name?: string
-          user_profile_picture?: string | null
+          content: string
           created_at?: string
           updated_at?: string
         }

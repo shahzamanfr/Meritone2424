@@ -286,7 +286,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
                             {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
                           </span>
                         </div>
-                        {user && (comment.user_id === user.id || user.id === postOwnerId) && (
+                        {user && comment.user_id === user.id && (
                           <div className="relative group">
                             <button className="text-gray-400 hover:text-gray-600 transition-colors p-1">
                               <MoreHorizontal className="w-4 h-4" />
